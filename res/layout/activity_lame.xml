@@ -1,0 +1,100 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <Button
+        android:id="@+id/startRecordBtn"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/tcpConnectBtn"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dip"
+        android:text="启动TCP连接" 
+        android:visibility="gone"/>
+
+    <Button
+        android:id="@+id/tcpBindBtn"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dip"
+        android:text="绑定地址"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/local_music_llayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="10dip"
+        android:visibility="visible">
+        
+		    <TextView
+		        android:layout_width="fill_parent"
+		        android:layout_height="wrap_content"
+		        android:text="本地录音文件播放区域" />
+		    
+		    <Button
+		        android:id="@+id/playLocalBtn"
+		        android:layout_width="fill_parent"
+		        android:layout_height="wrap_content"
+		        android:layout_marginTop="10dip"
+		        android:text="PLAY" />
+    
+	       <Button
+	        android:id="@+id/pauseLocalBtn"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_marginTop="10dip"
+	        android:text="PAUSE" />
+    
+	     <Button
+	        android:id="@+id/stopLocalBtn"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_marginTop="10dip"
+	        android:text="STOP" />
+
+    </LinearLayout>
+    
+     <LinearLayout
+        android:id="@+id/remote_music_llayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="10dip"
+        android:visibility="visible">
+         
+              <TextView
+			        android:layout_width="fill_parent"
+			        android:layout_height="wrap_content"
+			        android:text="远程录音文件播放区域" />
+         
+			    <Button
+			        android:id="@+id/playRemoteBtn"
+			        android:layout_width="fill_parent"
+			        android:layout_height="wrap_content"
+			        android:layout_marginTop="10dip"
+			        android:text="PLAY" />
+    
+		          <Button
+			        android:id="@+id/pauseRemoteBtn"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content"
+			        android:layout_marginTop="10dip"
+			        android:text="PAUSE" />
+    
+			     <Button
+			        android:id="@+id/stopRemoteBtn"
+			        android:layout_width="match_parent"
+			        android:layout_height="wrap_content"
+			        android:layout_marginTop="10dip"
+			        android:text="STOP" />
+    
+    </LinearLayout>
+
+</LinearLayout>
