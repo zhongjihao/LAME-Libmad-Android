@@ -105,13 +105,15 @@ static inline int readNextFrame(MP3FileHandle* mp3)
                 if(readBytes == 0)
 					return 0;  
                 inputBufferSize = leftOver + readBytes;
+				mp3 ->fileStartPos += readBytes;
 			}
 			else
 			{
 				int readBytes = file_read(mp3->fd,mp3->inputBuffer,INPUT_BUFFER_SIZE);
 				if(readBytes == 0)
 					return 0;
-				inputBufferSize = readBytes; 
+				inputBufferSize = readBytes;
+				mp3 ->fileStartPos += readBytes;
 			}
             mad_stream_buffer(&mp3->stream,mp3->inputBuffer,inputBufferSize);  
 			mp3->stream.error = MAD_ERROR_NONE;
@@ -159,16 +161,22 @@ int NativeMP3Decoder_readSamples(short *target, int size)
 		 }
 		 else
 		 {
-			 pos = file_seek(mp3->fd,0,SEEK_CUR);
+		     file_seek(mp3->fd,0,SEEK_CUR);
              int result = readNextFrame(mp3);
 			 if(result == 0)
+			 {
+				 LOGD("=====NativeMP3Decoder_readSamples====result: %d=========",result);
 				 return 0;
+			 }
 		 }
 	}
     
     if(idx > size)
-		return 0; 
-	return pos; 
+	{
+		LOGD("=====NativeMP3Decoder_readSamples=====idx: %d, size: %d",idx,size);
+		return 0;
+	}
+	return mp3 ->fileStartPos; 
 }
 
 int NativeMP3Decoder_getAudioSamplerate()  
@@ -186,6 +194,7 @@ int getAudioFileSize()
 
 void rePlayAudioFile()
 {
+	Handle ->fileStartPos = 0;
     file_seek(Handle->fd,-1*(Handle->size),SEEK_END);
 }
 

@@ -380,7 +380,13 @@ public class LameActivity extends Activity implements OnClickListener,EncoderDon
     @Override
     public void encoderNotify() {
         Log.d("LameActivity", "========encoderNotify()=======");
+        if(mp3Decoder != null){
+            mp3Decoder.closeAudioFile();
+        }    
+        playDone = false;
+        isStopPlay = false;
         handler.sendEmptyMessage(ENCODER_DONE);
+     
         //编码完后,先不要启动发送线程
 //        tcpsocket.setSendFilePath(mEncodedFile.getAbsolutePath());
 //        tcpsocket.startSendThread(); 
@@ -423,10 +429,9 @@ public class LameActivity extends Activity implements OnClickListener,EncoderDon
                                                        act.audioBuffer, act.mAudioMinBufSize);
                                                act.mAudioTrack.write(act.audioBuffer, 0, act.mAudioMinBufSize);
                                                Log.d("", "====播放缓冲大小:  " + act.mAudioMinBufSize
-                                                       + "====播放的文件位置: ========" + act.playCurrentPos);
-                                               if (act.playCurrentPos == act.mp3Decoder.getAudioFileSize() ||act.playCurrentPos == 0) {
+                                                       + "====播放的文件位置: ========" + act.playCurrentPos+"=========文件大小: "+act.mp3Decoder.getAudioFileSize());
+                                               if (act.playCurrentPos == 0) {
                                                    act.mAudioTrack.stop();
-                                                   act.playCurrentPos = 0;
                                                    act.handler.sendEmptyMessage(PLAY_DONE);
                                                    act.playDone = true;
                                                }
@@ -444,6 +449,7 @@ public class LameActivity extends Activity implements OnClickListener,EncoderDon
                            }
                    }else{
                        act.ret = act.mp3Decoder.initAudioPlayer(act.mEncodedFile.getAbsolutePath(), 0);
+                       act.initAudioPlayer();
                    }
                    break;
             case RECV_DONE:
