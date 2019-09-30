@@ -26,7 +26,7 @@ add_library( # Sets the name of the library.
 # completing its build.
 
 # Specifies a path to native header files.
-include_directories(src/main/jni/)
+# include_directories(src/main/jni/)
 
 find_library( # Sets the name of the path variable.
               log-lib

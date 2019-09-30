@@ -26,6 +26,7 @@ import android.widget.Toast;
 
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3DecoderJni;
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderJni;
+import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderWrap;
 import com.example.zhongjihao.mp3codecandroid.swig.SwigTest;
 
 import java.io.BufferedOutputStream;
@@ -88,10 +89,10 @@ public class Mp3CodecActivity extends AppCompatActivity {
 
         hasPermission = false;
 
-        mp3Encoder = new Mp3EncoderJni();
+
         handler = new Homehandle(this);
         initRecorder();
-        mp3Encoder.initMp3Encoder(NUM_CHANNELS, SAMPLE_RATE, BITRATE, MODE, QUALITY);
+        Mp3EncoderWrap.newInstance().initMp3Encoder(NUM_CHANNELS, SAMPLE_RATE, BITRATE, MODE, QUALITY);
 
 
         // 版本判断。当手机系统大于 23 时，才有必要去判断权限是否获取
@@ -119,7 +120,7 @@ public class Mp3CodecActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         mRecorder.release();
-        mp3Encoder.destroyMp3Encoder();
+        Mp3EncoderWrap.newInstance().destroyMp3Encoder();
         if(mAudioTrack != null){
             mAudioTrack.stop();
             mAudioTrack.release();// 关闭并释放资源

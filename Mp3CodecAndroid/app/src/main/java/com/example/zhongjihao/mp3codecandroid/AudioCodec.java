@@ -11,9 +11,6 @@ import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderWrap;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -24,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
     private static final String TAG = "AudioCodec";
     //用于存取待转换的PCM数据
-    private List<PcmBuffer> audioQueue = Collections.synchronizedList(new LinkedList<PcmBuffer>());
+    private LinkedBlockingQueue<PcmBuffer> audioQueue;
     private FileOutputStream mp3File;
     private byte[] mp3Buffer;
     private StopHandler handler;
@@ -34,7 +31,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
     public static class StopHandler extends Handler {
         WeakReference<AudioCodec> sr;
 
-        public WorkerHandler(AudioCodec stateReceiver) {
+        public StopHandler(AudioCodec stateReceiver) {
             sr = new WeakReference<AudioCodec>(stateReceiver);
         }
 
@@ -62,6 +59,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
         mp3File = os;
         //官方规定了计算公式：7200 + (1.25 * buffer_l.length)
         mp3Buffer =  new byte[(int) (7200 + (bufferSize * 2 * 1.25))];
+        audioQueue = new LinkedBlockingQueue<>();
         Mp3EncoderWrap.newInstance().createEncoder();
     }
 
@@ -118,7 +116,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
     private int encoderData() {
         if(audioQueue != null && audioQueue.size() > 0) {
             try {
-                PcmBuffer data = audioQueue.remove(0);
+                PcmBuffer data = audioQueue.take();
                 short[] buffer = data.getData();
                 int readSize = data.getReadSize();
                 Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + data.getReadSize());
@@ -135,7 +133,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
                     }
                     return readSize;
                 }
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
