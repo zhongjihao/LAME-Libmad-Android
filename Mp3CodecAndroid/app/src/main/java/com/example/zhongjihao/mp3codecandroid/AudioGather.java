@@ -3,6 +3,7 @@ package com.example.zhongjihao.mp3codecandroid;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
@@ -28,7 +29,7 @@ public class AudioGather {
     //输出MP3的码率
     private static final int BITRATE = 32;
     //mode = 0,1,2,3 = stereo, jstereo, dual channel (not supported), mono
-    private static final int MODE = 3;
+    private static final int MODE = 0;
     /*
        recommended:
            2     near-best quality, not too slow
@@ -39,8 +40,7 @@ public class AudioGather {
 
     private Thread workThread;
     private volatile boolean loop = false;
-    private File mp3File;
-    private FileOutputStream os = null;
+    private FileOutputStream outputStream = null;
     private PcmCallback mCallback;
 
     private OnFinishListener finishListener;
@@ -72,7 +72,7 @@ public class AudioGather {
 
      */
 
-    public void prepareAudioRecord(int channelConfig,int pcmFormat) {
+    public void prepareAudioRecord() {
         if (audioRecord != null) {
             audioRecord.stop();
             audioRecord.release();
@@ -82,14 +82,12 @@ public class AudioGather {
         int[] sampleRates = {44100, 22050, 16000, 11025, 8000, 4000};
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
         int aSampleRate = 44100;
+        // stereo 立体声,mono单声道
+        int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
         try {
             for (int sampleRate : sampleRates) {
-                min_buffer_size = AudioRecord.getMinBufferSize(sampleRate, channelConfig, pcmFormat);
-                int bytesPerFrame = 1;
-                if(pcmFormat == AudioFormat.ENCODING_PCM_16BIT)
-                    bytesPerFrame = 2;
-                else if(pcmFormat == AudioFormat.ENCODING_PCM_8BIT)
-                    bytesPerFrame = 1;
+                min_buffer_size = AudioRecord.getMinBufferSize(sampleRate, channelConfig,  AudioFormat.ENCODING_PCM_16BIT);
+                int bytesPerFrame = 2;
                 //获取的AudioRecord最小缓冲区包含的帧数
                 int frameSize = min_buffer_size / bytesPerFrame;
                 //保证AudioRecord最小缓冲区的帧数是160的整数倍，否则会造成数据丢失
@@ -97,15 +95,15 @@ public class AudioGather {
                     frameSize += (FRAME_COUNT - frameSize % FRAME_COUNT);
                 }
                 min_buffer_size = frameSize * bytesPerFrame;
-                audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, pcmFormat, min_buffer_size);
+                audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig,  AudioFormat.ENCODING_PCM_16BIT, min_buffer_size);
                 if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
                     audioRecord = null;
                     Log.e(TAG, "====zhongjihao===initialized the mic failed");
                     continue;
                 }
                 aSampleRate = sampleRate;
-                audioBuf = new short[min_buffer_size];
-                Log.d(TAG, "====zhongjihao====min_buffer_size: " + min_buffer_size);
+                audioBuf = new short[frameSize];
+                Log.d(TAG, "====zhongjihao====min_buffer_size: " + min_buffer_size+"  aSampleRate: "+aSampleRate);
                 break;
             }
         } catch (final Exception e) {
@@ -113,8 +111,8 @@ public class AudioGather {
         }
 
         // Create and run thread used to encode data
-        pcmEncoder = new AudioCodec(os, min_buffer_size);
-        int numChannels = channelConfig == AudioFormat.CHANNEL_IN_MONO ? 1:2;
+        pcmEncoder = new AudioCodec(outputStream, min_buffer_size);
+        int numChannels = channelConfig == AudioFormat.CHANNEL_CONFIGURATION_STEREO ? 2:1;
         pcmEncoder.initAudioEncoder(numChannels,aSampleRate, BITRATE, MODE, QUALITY);
         pcmEncoder.start();
         //给AudioRecord设置刷新监听，待录音帧数每次达到FRAME_COUNT，就通知转换线程转换一次数据
@@ -122,14 +120,26 @@ public class AudioGather {
         audioRecord.setPositionNotificationPeriod(FRAME_COUNT);
     }
 
+    public void setOutPutMp3Dir(String mp3Dir,String fileName){
+        File directory = new File(mp3Dir + "/" + "MyAudioRecorder");
+        if (!directory.exists()) {
+            directory.mkdirs();
+            Log.d(TAG, "Created directory");
+        }
+        try {
+            File file = new File(directory, fileName);
+            outputStream = new FileOutputStream(file);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 
     /**
      * 开始录音
      */
-    public void startRecord(File mp3File) {
+    public void startRecord() {
         if(loop)
             return;
-        this.mp3File = mp3File;
         workThread = new Thread() {
             @Override
             public void run() {
@@ -138,10 +148,10 @@ public class AudioGather {
                 }
                 while (loop && !Thread.interrupted()) {
                     //读取音频数据到audioBuf
-                    int size = audioRecord.read(audioBuf,0, min_buffer_size);
+                    int size = audioRecord.read(audioBuf,0, min_buffer_size/2);
                     if (size > 0) {
                         // set audio data to encoder
-                        // Log.d(TAG, "======zhongjihao========录音字节数:" + size);
+                        // Log.d(TAG, "======zhongjihao========录音short个数:" + size);
                         if (mCallback != null) {
                             mCallback.addPcmData(audioBuf,size);
                         }
@@ -175,6 +185,6 @@ public class AudioGather {
     }
 
     public interface PcmCallback {
-        public void addPcmData(short[] pcmData,int dataSize);
+        public void addPcmData(short[] pcmData,int elementNum);
     }
 }

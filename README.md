@@ -12,6 +12,6 @@
 2 cd jni/ \
   执行 ndk-build 生成so
 
-3 AS编译运行即可
+NDK部分已经完成,APP部分还在继续开发中
 
 
