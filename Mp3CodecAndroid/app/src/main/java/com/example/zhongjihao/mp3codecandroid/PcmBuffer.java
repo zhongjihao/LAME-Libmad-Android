@@ -1,7 +1,7 @@
 package com.example.zhongjihao.mp3codecandroid;
 
 /**
- * Created by zhongjihao on 18-8-26.
+ * Created by zhongjihao100@163.com on 18-8-26.
  */
 
 public class PcmBuffer {

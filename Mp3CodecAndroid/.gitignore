@@ -6,4 +6,5 @@ build
 .externalNativeBuild
 app/app.iml
 app/build/
+app/src/main/obj/
 

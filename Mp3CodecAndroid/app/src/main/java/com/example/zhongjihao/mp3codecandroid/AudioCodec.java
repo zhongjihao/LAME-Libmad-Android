@@ -8,6 +8,7 @@ import android.os.Message;
 
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderWrap;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -15,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Created by zhongjihao on 18-8-12.
+ * Created by zhongjihao100@163.com on 18-8-12.
  **/
 
 public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
@@ -26,7 +27,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
     private byte[] mp3Buffer;
     private StopHandler handler;
     private CountDownLatch handlerInitLatch = new CountDownLatch(1);
-    public static final int PROCESS_STOP = 1;
+    private static final int PROCESS_STOP = 1;
 
     public static class StopHandler extends Handler {
         WeakReference<AudioCodec> sr;
@@ -41,10 +42,10 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
             if (codec == null) {
                 return;
             }
+
             if (msg.what == PROCESS_STOP) {
                 //录音停止后，将剩余的PCM数据转换完毕
                 for (;codec.encoderData() > 0;);
-
                 removeCallbacksAndMessages(null);
                 codec.flush();
                 codec.audioQueue.clear();
@@ -54,20 +55,22 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
         }
     }
 
-
-    public AudioCodec(FileOutputStream os,int bufferSize) {
-        mp3File = os;
+    public AudioCodec(File os, int bufferSize) {
+        try {
+            mp3File = new FileOutputStream(os);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         //官方规定了计算公式：7200 + (1.25 * buffer_l.length)
         mp3Buffer =  new byte[(int) (7200 + (bufferSize * 2 * 1.25))];
+        Log.d(TAG,"mp3Buffer size: "+mp3Buffer.length+"   bufferSize: "+bufferSize);
         audioQueue = new LinkedBlockingQueue<>();
         Mp3EncoderWrap.newInstance().createEncoder();
     }
 
-
-    public void initAudioEncoder(int numChannels, int sampleRate, int bitRate, int mode, int quality) {
-        Mp3EncoderWrap.newInstance().initMp3Encoder(numChannels,sampleRate,bitRate,mode,quality);
+    public void initAudioEncoder(int numChannels, int inSampleRate,int outSampleRate, int bitRate, int mode, int quality) {
+        Mp3EncoderWrap.newInstance().initMp3Encoder(numChannels,inSampleRate,outSampleRate,bitRate,mode,quality);
     }
-
 
     @Override
     public void run() {
@@ -85,6 +88,10 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
             Log.e(TAG, "Error when waiting handle to init");
         }
         return handler;
+    }
+
+    public void sendStopMessage() {
+        handler.sendEmptyMessage(PROCESS_STOP);
     }
 
     /**
@@ -114,42 +121,51 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
 
     //从缓存区audioQueue里获取待编码的PCM数据，编码为MP3数据,并写入文件
     private int encoderData() {
-        if(audioQueue != null && audioQueue.size() > 0) {
+        if(audioQueue != null && !audioQueue.isEmpty()) {
             try {
                 PcmBuffer data = audioQueue.take();
                 short[] buffer = data.getData();
                 int readSize = data.getReadSize();
-                Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + data.getReadSize());
+                Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + readSize);
                 if (readSize > 0) {
                     int encodedSize =  Mp3EncoderWrap.newInstance().encodePcmToMp3(buffer, buffer, readSize, mp3Buffer);
-                    if (encodedSize < 0) {
-                        Log.e(TAG, "===zhongjihao====Lame encoded size: " + encodedSize);
-                    }
-                    try {
-                        mp3File.write(mp3Buffer, 0, encodedSize);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e(TAG, "===zhongjihao====Unable to write to file");
+                    Log.d(TAG, "===zhongjihao====Lame encoded size: " + encodedSize);
+                    if (encodedSize > 0) {
+                        try {
+                            mp3File.write(mp3Buffer, 0, encodedSize);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Log.e(TAG, "===zhongjihao====Unable to write to file");
+                        }
                     }
                     return readSize;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
         return 0;
     }
 
+    //Flush all data left in lame buffer to file
     private void flush() {
-        final int flushResult =  Mp3EncoderWrap.newInstance().encodeFlush(mp3Buffer);
-
-        if (flushResult > 0) {
-            try {
+        try {
+            Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"   mp3Buffer size: "+mp3Buffer.length);
+            final int flushResult = Mp3EncoderWrap.newInstance().encodeFlush(mp3Buffer);
+            Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"  flush size: "+flushResult);
+            if (flushResult > 0) {
                 mp3File.write(mp3Buffer, 0, flushResult);
-            } catch (final IOException e) {
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                mp3File.close();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
+            Log.d(TAG, "===zhongjihao====destroy===mp3 encoder====");
+            Mp3EncoderWrap.newInstance().destroyMp3Encoder();
         }
     }
 

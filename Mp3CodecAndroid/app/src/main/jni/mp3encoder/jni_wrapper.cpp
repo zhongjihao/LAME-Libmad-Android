@@ -18,10 +18,10 @@ jlong JNI_createEncoder(JNIEnv *env,jclass jcls)
 	return reinterpret_cast<long> (p_encode);
 }
 
-jint JNI_initEncoder(JNIEnv *env,jclass jcls, jlong jcPtr, jint in_num_channels, jint in_samplerate, jint in_brate,jint in_mode, jint in_quality)
+jint JNI_initEncoder(JNIEnv *env,jclass jcls, jlong jcPtr, jint in_num_channels, jint inSamplerate, jint outSamplerate,jint outBitrate,jint in_mode, jint in_quality)
 {
 	CMp3Encoder* p_encode = reinterpret_cast<CMp3Encoder *> (jcPtr);
-	int ret_code = p_encode->initEncoder(in_num_channels,in_samplerate,in_brate,in_mode,in_quality);
+	int ret_code = p_encode->initEncoder((int)in_num_channels,(int)inSamplerate,(int)outSamplerate,(int)outBitrate,(int)in_mode,(int)in_quality);
 
 	LOGD("%s: ===zhongjihao===init lamemp3===ret_code: %d",__FUNCTION__,ret_code);
 	return ret_code;
@@ -59,12 +59,10 @@ jint JNI_encodeFlush(JNIEnv *env,jclass jcls, jlong jcPtr, jbyteArray jmp3buf)
 	const jsize mp3buf_size = env->GetArrayLength(jmp3buf);
 
 	CMp3Encoder* p_encode = reinterpret_cast<CMp3Encoder *> (jcPtr);
-	LOGD("%s: ====zhongjihao======",__FUNCTION__);
-	int encoderBytes = p_encode ->flush((unsigned char*)mp3buf, mp3buf_size);
-
-	env->ReleaseByteArrayElements(jmp3buf, mp3buf, 0);
-
-	LOGD("%s: ====zhongjihao=====encoderBytes: %d",__FUNCTION__,encoderBytes);
+	LOGD("%s: ====zhongjihao======flush mp3 bytes: %d",__FUNCTION__,mp3buf_size);
+    int encoderBytes = p_encode ->flush((unsigned char*)mp3buf, mp3buf_size);
+    env->ReleaseByteArrayElements(jmp3buf, mp3buf, 0);
+	LOGD("%s: ====zhongjihao===flush===encoderBytes: %d",__FUNCTION__,encoderBytes);
 	return encoderBytes;
 }
 
@@ -72,7 +70,7 @@ jint JNI_encodeFlush(JNIEnv *env,jclass jcls, jlong jcPtr, jbyteArray jmp3buf)
 //JAVA函数和C++函数映射关系表
 static JNINativeMethod gMethods[] = {
 	{ "createMp3Encoder","()J",(void*)JNI_createEncoder},
-	{ "initMp3Encoder","(JIIIII)I",(void*)JNI_initEncoder},
+	{ "initMp3Encoder","(JIIIIII)I",(void*)JNI_initEncoder},
 	{ "encodePcmToMp3","(J[S[SI[B)I",(void*)JNI_encodePcmToMp3},
 	{ "encodeFlush","(J[B)I",(void*)JNI_encodeFlush},
     { "destroyMp3Encoder","(J)V",(void*)JNI_destroyEncoder},

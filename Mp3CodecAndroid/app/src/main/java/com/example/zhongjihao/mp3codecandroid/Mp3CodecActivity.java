@@ -4,9 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.AudioTrack;
-import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -18,22 +16,14 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.os.Message;
 import android.os.Handler;
-import android.text.format.Time;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3DecoderJni;
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderJni;
-import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderWrap;
-import com.example.zhongjihao.mp3codecandroid.swig.SwigTest;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.lang.ref.WeakReference;
 
 public class Mp3CodecActivity extends AppCompatActivity {
@@ -41,21 +31,6 @@ public class Mp3CodecActivity extends AppCompatActivity {
     private boolean hasPermission;
     private final static int PLAY_DONE = 100;
     private static final int ENCODER_DONE = 10;
-    private static final int RECV_DONE = 11;
-    public static final int NUM_CHANNELS = 1;
-    public static final int SAMPLE_RATE = 16000;
-    public static final int BITRATE = 128;
-    public static final int MODE = 1;
-    public static final int QUALITY = 2;
-    private AudioRecord mRecorder;
-    private short[] mBuffer;
-    private final String startRecordingLabel = "Start recording";
-    private final String stopRecordingLabel = "Stop recording";
-
-    private boolean mIsRecording = false;
-    private File mRawFile;
-    private File mEncodedFile;
-
 
     private Mp3EncoderJni mp3Encoder;
     private Mp3DecoderJni mp3Decoder;
@@ -72,6 +47,8 @@ public class Mp3CodecActivity extends AppCompatActivity {
     private int samplerate;
     private int mAudioMinBufSize;
 
+    private Button recordBtn;
+
     private static final int TARGET_PERMISSION_REQUEST = 100;
 
     // 要申请的权限
@@ -84,15 +61,13 @@ public class Mp3CodecActivity extends AppCompatActivity {
         setContentView(R.layout.activity_mp3_codec);
 
 
-        TextView recordBtn = (Button) findViewById(R.id.recordBtn);
+        recordBtn = (Button) findViewById(R.id.StartButton);
 
 
         hasPermission = false;
 
 
         handler = new Homehandle(this);
-        initRecorder();
-        Mp3EncoderWrap.newInstance().initMp3Encoder(NUM_CHANNELS, SAMPLE_RATE, BITRATE, MODE, QUALITY);
 
 
         // 版本判断。当手机系统大于 23 时，才有必要去判断权限是否获取
@@ -114,13 +89,28 @@ public class Mp3CodecActivity extends AppCompatActivity {
             }
         }
 
+        recordBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AudioGather.getInstance().prepareAudioRecord();
+                AudioGather.getInstance().initAudioEncoder(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
+                AudioGather.getInstance().startRecord();
+            }
+        });
+
+        Button stopButton = (Button) findViewById(R.id.StopButton);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AudioGather.getInstance().stopRecord();
+            }
+        });
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mRecorder.release();
-        Mp3EncoderWrap.newInstance().destroyMp3Encoder();
+        AudioGather.getInstance().stopRecord();
         if(mAudioTrack != null){
             mAudioTrack.stop();
             mAudioTrack.release();// 关闭并释放资源
@@ -133,14 +123,7 @@ public class Mp3CodecActivity extends AppCompatActivity {
         System.exit(0);
     }
 
-    private void initRecorder() {
-        int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        mBuffer = new short[bufferSize];
-        mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize);
-    }
+
 
     private void initAudioPlayer() {
         samplerate = mp3Decoder.getAudioSamplerate();
@@ -170,55 +153,6 @@ public class Mp3CodecActivity extends AppCompatActivity {
         // 这种方法对于铃声等体积较小的文件比较合适。
     }
 
-
-    private void startBufferedWrite(final File file) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                DataOutputStream output = null;
-                try {
-                    output = new DataOutputStream(new BufferedOutputStream(
-                            new FileOutputStream(file)));
-                    while (mIsRecording) {
-                        int readSize = mRecorder.read(mBuffer, 0,
-                                mBuffer.length);
-                        for (int i = 0; i < readSize; i++) {
-                            output.writeShort(mBuffer[i]);
-                        }
-                    }
-                } catch (IOException e) {
-                    Toast.makeText(Mp3CodecActivity.this, e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                } finally {
-                    if (output != null) {
-                        try {
-                            output.flush();
-                        } catch (IOException e) {
-                            Toast.makeText(Mp3CodecActivity.this, e.getMessage(),
-                                    Toast.LENGTH_SHORT).show();
-                        } finally {
-                            try {
-                                output.close();
-                            } catch (IOException e) {
-                                Toast.makeText(Mp3CodecActivity.this,
-                                        e.getMessage(), Toast.LENGTH_SHORT)
-                                        .show();
-                            }
-                        }
-                    }
-                }
-            }
-        }).start();
-    }
-
-    private File getFile(final String suffix) {
-        Time time = new Time();
-        time.setToNow();
-        return new File(Environment.getExternalStorageDirectory(),
-                time.format("%Y%m%d%H%M%S") + "." + suffix);
-    }
-
-
     private static class Homehandle extends Handler {
         private WeakReference<Mp3CodecActivity> wref;
 
@@ -237,9 +171,9 @@ public class Mp3CodecActivity extends AppCompatActivity {
                     Toast.makeText(act, "录音文件已编码完毕!", Toast.LENGTH_SHORT).show();
                     if(act.mp3Decoder == null){
                         act.mp3Decoder = new Mp3DecoderJni();
-                        act.ret = act.mp3Decoder.initAudioPlayer(act.mEncodedFile.getAbsolutePath(), 0);
+                        act.ret = act.mp3Decoder.initAudioPlayer("aaa", 0);
                         if (act.ret == -1) {
-                            Log.e("zhongjihao", "====Couldn't open file '" + act.mEncodedFile.getAbsolutePath());
+                            Log.e("zhongjihao", "====Couldn't open file '");
                         } else {
                             act.mThreadFlag = true;
                             act.initAudioPlayer();
@@ -274,7 +208,7 @@ public class Mp3CodecActivity extends AppCompatActivity {
                             act.mThread.start();
                         }
                     }else{
-                        act.ret = act.mp3Decoder.initAudioPlayer(act.mEncodedFile.getAbsolutePath(), 0);
+                        act.ret = act.mp3Decoder.initAudioPlayer("aaa", 0);
                         act.initAudioPlayer();
                     }
                     break;
@@ -303,14 +237,14 @@ public class Mp3CodecActivity extends AppCompatActivity {
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
                 && (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)) {
             if(requestCode == TARGET_PERMISSION_REQUEST){
-               // btnStart.setEnabled(true);
+                recordBtn.setEnabled(true);
                 hasPermission = true;
             }
         }else{
-           // btnStart.setEnabled(false);
+            recordBtn.setEnabled(false);
             hasPermission = false;
-//            Toast.makeText(this, getText(R.string.no_permission_tips), Toast.LENGTH_SHORT)
-//                    .show();
+            Toast.makeText(this, getText(R.string.no_permission_tips), Toast.LENGTH_SHORT)
+                    .show();
         }
     }
 

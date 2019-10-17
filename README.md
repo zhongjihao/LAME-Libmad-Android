@@ -12,6 +12,8 @@
 2 cd jni/ \
   执行 ndk-build 生成so
 
-NDK部分已经完成,APP部分还在继续开发中
+3 AS编译运行安装
+   录制MP3文件在SD卡audio_dir目录中
+
 
 

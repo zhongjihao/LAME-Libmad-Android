@@ -1,7 +1,7 @@
 package com.example.zhongjihao.mp3codecandroid.mp3codec;
 
 /**
- * Created by zhongjihao on 18-8-25.
+ * Created by zhongjihao100@163.com on 18-8-25.
  */
 
 public class Mp3EncoderWrap {
@@ -23,20 +23,32 @@ public class Mp3EncoderWrap {
     }
 
     public void createEncoder() {
-        cPtr = Mp3EncoderJni.createMp3Encoder();
+        if(cPtr == 0){
+            cPtr = Mp3EncoderJni.createMp3Encoder();
+        }
     }
 
-    public int initMp3Encoder(int numChannels, int sampleRate,int bitRate, int mode, int quality) {
-        return Mp3EncoderJni.initMp3Encoder(cPtr,numChannels, sampleRate,bitRate,mode,quality);
+    public int initMp3Encoder(int inChannelNum, int inSampleRate,int outSampleRate,int outBitrate, int mode, int quality) {
+        if(cPtr != 0){
+            return Mp3EncoderJni.initMp3Encoder(cPtr,inChannelNum, inSampleRate,outSampleRate,outBitrate,mode,quality);
+        }else {
+            return -1;
+        }
     }
 
     public int encodePcmToMp3(short[] buffer_l, short[] buffer_r, int samples, byte[] mp3buf) {
-        int encoderByte = Mp3EncoderJni.encodePcmToMp3(cPtr,buffer_l, buffer_r,samples,mp3buf);
+        int encoderByte = 0;
+        if(cPtr != 0){
+            encoderByte = Mp3EncoderJni.encodePcmToMp3(cPtr,buffer_l, buffer_r,samples,mp3buf);
+        }
         return encoderByte;
     }
 
     public int encodeFlush(byte[] mp3buf) {
-        int encoderByte = Mp3EncoderJni.encodeFlush(cPtr,mp3buf);
+        int encoderByte = 0;
+        if(cPtr != 0){
+            encoderByte = Mp3EncoderJni.encodeFlush(cPtr,mp3buf);
+        }
         return encoderByte;
     }
 
@@ -44,6 +56,7 @@ public class Mp3EncoderWrap {
         if (cPtr != 0) {
             Mp3EncoderJni.destroyMp3Encoder(cPtr);
         }
+        cPtr = 0;
         mInstance = null;
     }
 
