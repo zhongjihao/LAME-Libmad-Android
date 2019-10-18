@@ -13,11 +13,14 @@ import java.io.File;
 
 public class AudioGather {
     private static final String TAG = "AudioGather";
-    private static AudioGather mAudioGather;
+    private static final int MAX_VOLUME = 2000;
+    public static final int RECORD_MP3 = 1;
+    public static final int RECORD_WAV = 2;
     private AudioRecord audioRecord;
     private short[] audioBuf;
     private int min_buffer_size;
-    private AudioCodec pcmEncoder;
+    private MP3Codec mp3Encoder;
+    private WavCodec wavEncoder;
     //转换周期，录音每满160帧，进行一次转换
     private static final int FRAME_COUNT = 160;
     //声道数
@@ -49,23 +52,16 @@ public class AudioGather {
     private PcmCallback mCallback;
     private boolean initAudioRecord = false;
     private boolean initAudioEncoder = false;
+    private int mVolume;
+    private String outputDir;
+    private String recordFileName;
 
-    public static AudioGather getInstance() {
-        if (mAudioGather == null) {
-            synchronized (AudioGather.class) {
-                if (mAudioGather == null) {
-                    mAudioGather = new AudioGather();
-                }
-            }
-        }
-        return mAudioGather;
+    public AudioGather(String dir, String fileName) {
+        this.outputDir = dir;
+        this.recordFileName = fileName;
     }
 
-    private AudioGather() {
-
-    }
-
-    public void prepareAudioRecord() {
+    private void prepareAudioRecord() {
         if(initAudioRecord){
             Log.d(TAG,"AudioRecord inited");
             return;
@@ -101,7 +97,7 @@ public class AudioGather {
         }
     }
 
-    public void initAudioEncoder(String dir, String fileName) {
+    private void initMP3Encoder() {
         if (!initAudioRecord) {
             Log.e(TAG, "AudioRecord is not inited");
             return;
@@ -112,29 +108,65 @@ public class AudioGather {
             return;
         }
         // Create and run thread used to encode data
-        File file = FileUtil.setOutPutFile(dir, fileName);
+        File file = FileUtil.setOutPutFile(outputDir, recordFileName);
         if (file == null) {
-            Log.e(TAG, "initAudioEncoder----dir: " + dir + "  fileName: " + fileName + "  create error");
+            Log.e(TAG, "initAudioEncoder----outputDir: " + outputDir + "  fileName: " + recordFileName + "  create error");
             return;
         }
 
-        pcmEncoder = new AudioCodec(file, min_buffer_size/2);
+        mp3Encoder = new MP3Codec(file, min_buffer_size/2);
         aChannelCount = CHANNEL_CONFIG == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
-        pcmEncoder.initAudioEncoder(aChannelCount, aSampleRate, aSampleRate, BITRATE, MODE, QUALITY);
-        pcmEncoder.start();
+        mp3Encoder.initAudioEncoder(aChannelCount, aSampleRate, aSampleRate, BITRATE, MODE, QUALITY);
+        mp3Encoder.start();
         //给AudioRecord设置刷新监听，待录音帧数每次达到FRAME_COUNT，就通知转换线程转换一次数据
-        audioRecord.setRecordPositionUpdateListener(pcmEncoder, pcmEncoder.getHandler());
+        audioRecord.setRecordPositionUpdateListener(mp3Encoder, mp3Encoder.getHandler());
         audioRecord.setPositionNotificationPeriod(FRAME_COUNT);
-        mCallback = pcmEncoder;
+        mCallback = mp3Encoder;
+        initAudioEncoder = true;
+    }
+
+    private void initWAVEncoder() {
+        if (!initAudioRecord) {
+            Log.e(TAG, "AudioRecord is not inited");
+            return;
+        }
+
+        if (initAudioEncoder) {
+            Log.e(TAG, "AudioEncoder is inited");
+            return;
+        }
+        // Create and run thread used to encode data
+        File file = FileUtil.setOutPutFile(outputDir, recordFileName);
+        if (file == null) {
+            Log.e(TAG, "initAudioEncoder----outputDir: " + outputDir + "  fileName: " + recordFileName + "  create error");
+            return;
+        }
+
+        wavEncoder = new WavCodec(outputDir+"/"+recordFileName);
+        aChannelCount = CHANNEL_CONFIG == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
+        wavEncoder.initWavEncoder(aChannelCount, aSampleRate,AUDIO_FORMAT.getBytesPerFrame());
+        wavEncoder.start();
+        //给AudioRecord设置刷新监听，待录音帧数每次达到FRAME_COUNT，就通知转换线程转换一次数据
+        audioRecord.setRecordPositionUpdateListener(wavEncoder, wavEncoder.getHandler());
+        audioRecord.setPositionNotificationPeriod(FRAME_COUNT);
+        mCallback = wavEncoder;
         initAudioEncoder = true;
     }
 
     /**
      * 开始录音
      */
-    public void startRecord() {
+    public void startRecord(int recordType) {
         if(loop)
             return;
+        prepareAudioRecord();
+
+        if(recordType == RECORD_MP3){
+            initMP3Encoder();
+        }else if(recordType == RECORD_WAV){
+            initWAVEncoder();
+        }
+
         workThread = new Thread() {
             @Override
             public void run() {
@@ -149,6 +181,7 @@ public class AudioGather {
                         // set audio data to encoder
                         // Log.d(TAG, "======zhongjihao========录音short个数:" + size);
                         if (mCallback != null) {
+                            calculateRealVolume(audioBuf, size);
                             mCallback.addPcmData(audioBuf,size);
                         }
                     }
@@ -162,10 +195,10 @@ public class AudioGather {
 
                 // stop the encoding thread and try to wait
                 // until the thread finishes its job
-                pcmEncoder.sendStopMessage();
+                mp3Encoder.sendStopMessage();
                 try {
                     Log.d(TAG, "=====zhongjihao======等待Audio编码线程退出...");
-                    pcmEncoder.join();
+                    mp3Encoder.join();
                     Log.d(TAG, "=====zhongjihao======Audio录音线程结束...");
                 }catch (InterruptedException e){
                     e.printStackTrace();
@@ -183,6 +216,42 @@ public class AudioGather {
         initAudioRecord = false;
         initAudioEncoder = false;
 
+    }
+
+    /**
+     * 此计算方法来自samsung开发范例
+     *
+     * @param buffer buffer
+     * @param readSize readSize
+     */
+    private void calculateRealVolume(short[] buffer, int readSize) {
+        double sum = 0;
+        for (int i = 0; i < readSize; i++) {
+            sum += buffer[i] * buffer[i];
+        }
+        if (readSize > 0) {
+            double amplitude = sum / readSize;
+            mVolume = (int) Math.sqrt(amplitude);
+        }
+    }
+
+    /**
+     * 获取真实的音量。 [算法来自三星]
+     * @return 真实音量
+     */
+    public int getRealVolume() {
+        return mVolume;
+    }
+
+    /**
+     * 获取相对音量。 超过最大值时取最大值。
+     * @return 音量
+     */
+    public int getVolume(){
+        if (mVolume >= MAX_VOLUME) {
+            return MAX_VOLUME;
+        }
+        return mVolume;
     }
 
     public interface PcmCallback {

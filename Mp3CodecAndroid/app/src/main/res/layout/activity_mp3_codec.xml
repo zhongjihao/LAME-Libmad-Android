@@ -10,18 +10,58 @@
         android:orientation="horizontal" >
 
         <Button
-            android:id="@+id/StartButton"
+            android:id="@+id/StartRecordMP3"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Start" />
+            android:text="StartRecordMP3" />
 
         <Button
-            android:id="@+id/StopButton"
+            android:id="@+id/StopRecordMP3"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Stop" />
+            android:text="StopRecordMP3" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/StartRecordWAV"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="StartRecordWAV" />
+
+        <Button
+            android:id="@+id/StopRecordWAV"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="StopRecordWAV" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/StartRecordAMR"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="StartRecordAMR" />
+
+        <Button
+            android:id="@+id/StopRecordAMR"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="StopRecordAMR" />
     </LinearLayout>
 
     <TextView

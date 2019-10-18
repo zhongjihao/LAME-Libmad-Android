@@ -22,6 +22,10 @@ public class FileUtil {
         return String.format("%1$tY-%1$tm-%1$td_%1$tH_%1$tM_%1$tS_%1$tL.mp3", timeMillis);
     }
 
+    public static String getWavFileName(long timeMillis){
+        return String.format("%1$tY-%1$tm-%1$td_%1$tH_%1$tM_%1$tS_%1$tL.wav", timeMillis);
+    }
+
     public static File setOutPutFile(String dir,String fileName){
         boolean isSdcardOk = true;
         File directory = new File(dir);

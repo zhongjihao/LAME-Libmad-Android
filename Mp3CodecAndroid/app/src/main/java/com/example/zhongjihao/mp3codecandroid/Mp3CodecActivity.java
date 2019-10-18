@@ -21,20 +21,21 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3DecoderJni;
-import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderJni;
 
 
 import java.lang.ref.WeakReference;
 
-public class Mp3CodecActivity extends AppCompatActivity {
+public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickListener {
 
     private boolean hasPermission;
     private final static int PLAY_DONE = 100;
     private static final int ENCODER_DONE = 10;
 
-    private Mp3EncoderJni mp3Encoder;
     private Mp3DecoderJni mp3Decoder;
     private Homehandle handler = null;
+
+    private AudioGather mp3Record;
+    private AudioGather wavRecord;
 
     private Thread mThread;
     private short[] audioBuffer;
@@ -47,7 +48,10 @@ public class Mp3CodecActivity extends AppCompatActivity {
     private int samplerate;
     private int mAudioMinBufSize;
 
-    private Button recordBtn;
+    private Button startRecordMP3Btn;
+    private Button stopRecordMP3Btn;
+    private Button startRecordWavBtn;
+    private Button stopRecordWavBtn;
 
     private static final int TARGET_PERMISSION_REQUEST = 100;
 
@@ -60,15 +64,19 @@ public class Mp3CodecActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mp3_codec);
 
-
-        recordBtn = (Button) findViewById(R.id.StartButton);
-
+        startRecordMP3Btn = (Button) findViewById(R.id.StartRecordMP3);
+        stopRecordMP3Btn = (Button) findViewById(R.id.StopRecordMP3);
+        startRecordWavBtn = (Button) findViewById(R.id.StartRecordWAV);
+        stopRecordWavBtn = (Button) findViewById(R.id.StopRecordWAV);
 
         hasPermission = false;
 
-
         handler = new Homehandle(this);
 
+        startRecordMP3Btn.setOnClickListener(this);
+        stopRecordMP3Btn.setOnClickListener(this);
+        startRecordWavBtn.setOnClickListener(this);
+        stopRecordWavBtn.setOnClickListener(this);
 
         // 版本判断。当手机系统大于 23 时，才有必要去判断权限是否获取
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -88,29 +96,47 @@ public class Mp3CodecActivity extends AppCompatActivity {
                         permissions, TARGET_PERMISSION_REQUEST);
             }
         }
+    }
 
-        recordBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AudioGather.getInstance().prepareAudioRecord();
-                AudioGather.getInstance().initAudioEncoder(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
-                AudioGather.getInstance().startRecord();
+    @Override
+    public void onClick(View v) {
+        int vid = v.getId();
+        switch (vid){
+            case R.id.StartRecordMP3:{
+                if(mp3Record == null){
+                    mp3Record = new AudioGather(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
+                }
+                mp3Record.startRecord(AudioGather.RECORD_MP3);
+                break;
             }
-        });
-
-        Button stopButton = (Button) findViewById(R.id.StopButton);
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AudioGather.getInstance().stopRecord();
+            case R.id.StopRecordMP3:{
+                if(mp3Record != null){
+                    mp3Record.stopRecord();
+                }
+                break;
             }
-        });
+            case R.id.StartRecordWAV:{
+                if(wavRecord == null){
+                    wavRecord = new AudioGather(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getWavFileName(System.currentTimeMillis()));
+                }
+                wavRecord.startRecord(AudioGather.RECORD_WAV);
+                break;
+            }
+            case R.id.StopRecordWAV:{
+                if(wavRecord != null){
+                    wavRecord.stopRecord();
+                }
+                break;
+            }
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        AudioGather.getInstance().stopRecord();
+        if(mp3Record != null){
+            mp3Record.stopRecord();
+        }
         if(mAudioTrack != null){
             mAudioTrack.stop();
             mAudioTrack.release();// 关闭并释放资源
@@ -237,11 +263,11 @@ public class Mp3CodecActivity extends AppCompatActivity {
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
                 && (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)) {
             if(requestCode == TARGET_PERMISSION_REQUEST){
-                recordBtn.setEnabled(true);
+                startRecordMP3Btn.setEnabled(true);
                 hasPermission = true;
             }
         }else{
-            recordBtn.setEnabled(false);
+            startRecordMP3Btn.setEnabled(false);
             hasPermission = false;
             Toast.makeText(this, getText(R.string.no_permission_tips), Toast.LENGTH_SHORT)
                     .show();

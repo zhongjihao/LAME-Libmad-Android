@@ -1,44 +1,39 @@
 package com.example.zhongjihao.mp3codecandroid;
 
 import android.media.AudioRecord;
-import android.os.Looper;
-import android.util.Log;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 
-import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3EncoderWrap;
+import com.example.zhongjihao.mp3codecandroid.wavcodec.WavCoderWrap;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by zhongjihao100@163.com on 18-8-12.
- **/
-
-public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
-    private static final String TAG = "AudioCodec";
+ */
+public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
+    private static final String TAG = "WavCodec";
     //用于存取待转换的PCM数据
     private LinkedBlockingQueue<PcmBuffer> audioQueue;
-    private FileOutputStream mp3File;
-    private byte[] mp3Buffer;
     private StopHandler handler;
     private CountDownLatch handlerInitLatch = new CountDownLatch(1);
     private static final int PROCESS_STOP = 1;
+    private String wavPath;
 
     public static class StopHandler extends Handler {
-        WeakReference<AudioCodec> sr;
+        WeakReference<WavCodec> sr;
 
-        public StopHandler(AudioCodec stateReceiver) {
-            sr = new WeakReference<AudioCodec>(stateReceiver);
+        public StopHandler(WavCodec stateReceiver){
+            sr = new WeakReference<>(stateReceiver);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            AudioCodec codec = sr.get();
+            WavCodec codec = sr.get();
             if (codec == null) {
                 return;
             }
@@ -55,21 +50,14 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
         }
     }
 
-    public AudioCodec(File os, int bufferSize) {
-        try {
-            mp3File = new FileOutputStream(os);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        //官方规定了计算公式：7200 + (1.25 * buffer_l.length)
-        mp3Buffer =  new byte[(int) (7200 + (bufferSize * 2 * 1.25))];
-        Log.d(TAG,"mp3Buffer size: "+mp3Buffer.length+"   bufferSize: "+bufferSize);
+    public WavCodec(String wavPath){
+        this.wavPath = wavPath;
         audioQueue = new LinkedBlockingQueue<>();
-        Mp3EncoderWrap.newInstance().createEncoder();
+        WavCoderWrap.newInstance().createWavEncoder(wavPath);
     }
 
-    public void initAudioEncoder(int numChannels, int inSampleRate,int outSampleRate, int bitRate, int mode, int quality) {
-        Mp3EncoderWrap.newInstance().initMp3Encoder(numChannels,inSampleRate,outSampleRate,bitRate,mode,quality);
+    public void initWavEncoder(int numChannels, int sampleRate,int bytesPerSample) {
+        WavCoderWrap.newInstance().initWavEncoder(numChannels,sampleRate,bytesPerSample);
     }
 
     @Override
@@ -128,17 +116,7 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
                 int readSize = data.getReadSize();
                 Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + readSize);
                 if (readSize > 0) {
-                    int encodedSize =  Mp3EncoderWrap.newInstance().encodePcmToMp3(buffer, buffer, readSize, mp3Buffer);
-                    Log.d(TAG, "===zhongjihao====Lame encoded size: " + encodedSize);
-                    if (encodedSize > 0) {
-                        try {
-                            mp3File.write(mp3Buffer, 0, encodedSize);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            Log.e(TAG, "===zhongjihao====Unable to write to file");
-                        }
-                    }
-                    return readSize;
+                    WavCoderWrap.newInstance().encodePcmToWav(buffer,readSize);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -149,24 +127,8 @@ public class AudioCodec extends Thread implements AudioGather.PcmCallback,AudioR
 
     //Flush all data left in lame buffer to file
     private void flush() {
-        try {
-            Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"   mp3Buffer size: "+mp3Buffer.length);
-            final int flushResult = Mp3EncoderWrap.newInstance().encodeFlush(mp3Buffer);
-            Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"  flush size: "+flushResult);
-            if (flushResult > 0) {
-                mp3File.write(mp3Buffer, 0, flushResult);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                mp3File.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            Log.d(TAG, "===zhongjihao====destroy===mp3 encoder====");
-            Mp3EncoderWrap.newInstance().destroyMp3Encoder();
-        }
+        WavCoderWrap.newInstance().encodeFlush();
+        WavCoderWrap.newInstance().destroyWavEncoder();
     }
 
 }
