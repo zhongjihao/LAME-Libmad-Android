@@ -11,11 +11,11 @@ public class WavCoderJni {
 
     public native static long createWavEncoder(String wavPath);
 
-    public native static void initWavEncoder(long cPtr,int inChannelNum, int sampleRate,int bytesPerSample);
+    public native static void initWavEncoder(long cPtr,int channelNum, int sampleRate,int bytesPerSample);
 
-    public native static void encodePcmToWav(long cPtr,short[] buffer, int samples);
+    public native static void writePcmData(long cPtr,short[] buffer, int samples);
 
-    public native static void encodeFlush(long cPtr);
+    public native static void writeWavHeader(long cPtr);
 
     public native static void destroyWavEncoder(long cPtr);
 }

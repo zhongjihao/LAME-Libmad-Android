@@ -16,8 +16,9 @@ CMp3Encoder::CMp3Encoder():lame(NULL)
 
 CMp3Encoder::~CMp3Encoder()
 {
-	LOGD("%s: ========zhongjihao=====",__FUNCTION__);
-    destroyEncoder();
+	int res = lame_close(lame);
+	lame = NULL;
+	LOGD("%s:=====zhongjihao===Deinit returned: %d", __FUNCTION__,res);
 }
 
 int CMp3Encoder::initEncoder(int inChannelNum,int inSamplerate,int outSamplerate,int outBitrate,int mode,int quality)
@@ -68,12 +69,5 @@ int CMp3Encoder::flush(unsigned char* mp3buf, int mp3buf_size)
 	int nb_total = lame_encode_flush(lame, mp3buf, mp3buf_size);
 	LOGD("%s:X: ====zhongjihao====Flushed %d bytes", __FUNCTION__,nb_total);
     return nb_total;
-}
-
-void CMp3Encoder::destroyEncoder()
-{
-	int res = lame_close(lame);
-	lame = NULL;
-	LOGD("%s:=====zhongjihao===Deinit returned: %d", __FUNCTION__,res);
 }
 

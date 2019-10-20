@@ -42,7 +42,6 @@ jint JNI_encodePcmToMp3(JNIEnv *env,jclass jcls, jlong jcPtr,jshortArray jbuffer
 	const jsize mp3buf_size = env->GetArrayLength(jmp3buf);
 
 	CMp3Encoder* p_encode = reinterpret_cast<CMp3Encoder *> (jcPtr);
-    LOGD("%s: ====zhongjihao======",__FUNCTION__);
 	int encoderBytes = p_encode ->encoder(buffer_l, buffer_r, jsamples, (unsigned char*)mp3buf, mp3buf_size);
 
 	env->ReleaseShortArrayElements(jbuffer_l, buffer_l, 0);
@@ -59,7 +58,6 @@ jint JNI_encodeFlush(JNIEnv *env,jclass jcls, jlong jcPtr, jbyteArray jmp3buf)
 	const jsize mp3buf_size = env->GetArrayLength(jmp3buf);
 
 	CMp3Encoder* p_encode = reinterpret_cast<CMp3Encoder *> (jcPtr);
-	LOGD("%s: ====zhongjihao======flush mp3 bytes: %d",__FUNCTION__,mp3buf_size);
     int encoderBytes = p_encode ->flush((unsigned char*)mp3buf, mp3buf_size);
     env->ReleaseByteArrayElements(jmp3buf, mp3buf, 0);
 	LOGD("%s: ====zhongjihao===flush===encoderBytes: %d",__FUNCTION__,encoderBytes);

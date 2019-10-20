@@ -44,7 +44,7 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
                 removeCallbacksAndMessages(null);
                 codec.flush();
                 codec.audioQueue.clear();
-                Log.d(TAG, "=====zhongjihao======Audio 编码线程 退出...");
+                Log.d(TAG, "=====zhongjihao======Wav编码线程 退出...");
                 getLooper().quit();
             }
         }
@@ -116,7 +116,8 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
                 int readSize = data.getReadSize();
                 Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + readSize);
                 if (readSize > 0) {
-                    WavCoderWrap.newInstance().encodePcmToWav(buffer,readSize);
+                    WavCoderWrap.newInstance().writePcmData(buffer,readSize);
+                    return readSize;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -127,7 +128,7 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
 
     //Flush all data left in lame buffer to file
     private void flush() {
-        WavCoderWrap.newInstance().encodeFlush();
+        WavCoderWrap.newInstance().writeWavHeader();
         WavCoderWrap.newInstance().destroyWavEncoder();
     }
 

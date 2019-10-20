@@ -34,7 +34,7 @@ android {
             main {
                 // 设置Jni so文件路径
                 jniLibs.srcDirs = ['src/main/libs']
-                jni.srcDirs = []
+                //jni.srcDirs = []
             }
         }
 

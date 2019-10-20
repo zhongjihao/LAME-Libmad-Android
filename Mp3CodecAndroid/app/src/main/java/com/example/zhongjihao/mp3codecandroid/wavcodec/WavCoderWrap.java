@@ -35,15 +35,15 @@ public class WavCoderWrap {
         }
     }
 
-    public void encodePcmToWav(short[] buffer,int samples) {
+    public void writePcmData(short[] buffer,int samples) {
         if(cPtr != 0){
-            WavCoderJni.encodePcmToWav(cPtr,buffer,samples);
+            WavCoderJni.writePcmData(cPtr,buffer,samples);
         }
     }
 
-    public void encodeFlush() {
+    public void writeWavHeader() {
         if(cPtr != 0){
-            WavCoderJni.encodeFlush(cPtr);
+            WavCoderJni.writeWavHeader(cPtr);
         }
     }
 

@@ -49,7 +49,7 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
                 removeCallbacksAndMessages(null);
                 codec.flush();
                 codec.audioQueue.clear();
-                Log.d(TAG, "=====zhongjihao======Audio 编码线程 退出...");
+                Log.d(TAG, "=====zhongjihao======MP3编码线程 退出...");
                 getLooper().quit();
             }
         }

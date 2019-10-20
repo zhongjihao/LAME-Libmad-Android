@@ -25,18 +25,18 @@ JNIEXPORT void JNICALL Java_com_example_zhongjihao_mp3codecandroid_wavcodec_WavC
 
 /*
  * Class:     com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni
- * Method:    encodePcmToWav
+ * Method:    writePcmData
  * Signature: (J[SI)V
  */
-JNIEXPORT void JNICALL Java_com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni_encodePcmToWav
+JNIEXPORT void JNICALL Java_com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni_writePcmData
   (JNIEnv *, jclass, jlong, jshortArray, jint);
 
 /*
  * Class:     com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni
- * Method:    encodeFlush
+ * Method:    writeWavHeader
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni_encodeFlush
+JNIEXPORT void JNICALL Java_com_example_zhongjihao_mp3codecandroid_wavcodec_WavCoderJni_writeWavHeader
   (JNIEnv *, jclass, jlong);
 
 /*

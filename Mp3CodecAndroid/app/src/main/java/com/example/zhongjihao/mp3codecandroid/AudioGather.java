@@ -107,13 +107,13 @@ public class AudioGather {
             Log.e(TAG, "AudioEncoder is inited");
             return;
         }
-        // Create and run thread used to encode data
+
         File file = FileUtil.setOutPutFile(outputDir, recordFileName);
         if (file == null) {
             Log.e(TAG, "initAudioEncoder----outputDir: " + outputDir + "  fileName: " + recordFileName + "  create error");
             return;
         }
-
+        // Create and run thread used to encode data
         mp3Encoder = new MP3Codec(file, min_buffer_size/2);
         aChannelCount = CHANNEL_CONFIG == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
         mp3Encoder.initAudioEncoder(aChannelCount, aSampleRate, aSampleRate, BITRATE, MODE, QUALITY);
@@ -136,12 +136,6 @@ public class AudioGather {
             return;
         }
         // Create and run thread used to encode data
-        File file = FileUtil.setOutPutFile(outputDir, recordFileName);
-        if (file == null) {
-            Log.e(TAG, "initAudioEncoder----outputDir: " + outputDir + "  fileName: " + recordFileName + "  create error");
-            return;
-        }
-
         wavEncoder = new WavCodec(outputDir+"/"+recordFileName);
         aChannelCount = CHANNEL_CONFIG == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
         wavEncoder.initWavEncoder(aChannelCount, aSampleRate,AUDIO_FORMAT.getBytesPerFrame());
@@ -156,7 +150,7 @@ public class AudioGather {
     /**
      * 开始录音
      */
-    public void startRecord(int recordType) {
+    public void startRecord(final int recordType) {
         if(loop)
             return;
         prepareAudioRecord();
@@ -195,14 +189,26 @@ public class AudioGather {
 
                 // stop the encoding thread and try to wait
                 // until the thread finishes its job
-                mp3Encoder.sendStopMessage();
-                try {
-                    Log.d(TAG, "=====zhongjihao======等待Audio编码线程退出...");
-                    mp3Encoder.join();
-                    Log.d(TAG, "=====zhongjihao======Audio录音线程结束...");
-                }catch (InterruptedException e){
-                    e.printStackTrace();
+                if(recordType == RECORD_MP3){
+                    mp3Encoder.sendStopMessage();
+                    try {
+                        Log.d(TAG, "=====zhongjihao======等待MP3编码线程退出...");
+                        mp3Encoder.join();
+                        Log.d(TAG, "=====zhongjihao======Audio录音线程结束...");
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                }else if(recordType == RECORD_WAV){
+                    wavEncoder.sendStopMessage();
+                    try {
+                        Log.d(TAG, "=====zhongjihao======等待WAV编码线程退出...");
+                        wavEncoder.join();
+                        Log.d(TAG, "=====zhongjihao======Audio录音线程结束...");
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
                 }
+
             }
         };
 

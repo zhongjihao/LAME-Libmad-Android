@@ -112,6 +112,7 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
             case R.id.StopRecordMP3:{
                 if(mp3Record != null){
                     mp3Record.stopRecord();
+                    mp3Record = null;
                 }
                 break;
             }
@@ -125,6 +126,7 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
             case R.id.StopRecordWAV:{
                 if(wavRecord != null){
                     wavRecord.stopRecord();
+                    wavRecord = null;
                 }
                 break;
             }
@@ -136,6 +138,11 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         super.onDestroy();
         if(mp3Record != null){
             mp3Record.stopRecord();
+            mp3Record = null;
+        }
+        if(wavRecord != null){
+            wavRecord.stopRecord();
+            wavRecord = null;
         }
         if(mAudioTrack != null){
             mAudioTrack.stop();
@@ -264,10 +271,12 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
                 && (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)) {
             if(requestCode == TARGET_PERMISSION_REQUEST){
                 startRecordMP3Btn.setEnabled(true);
+                startRecordWavBtn.setEnabled(true);
                 hasPermission = true;
             }
         }else{
             startRecordMP3Btn.setEnabled(false);
+            startRecordWavBtn.setEnabled(false);
             hasPermission = false;
             Toast.makeText(this, getText(R.string.no_permission_tips), Toast.LENGTH_SHORT)
                     .show();

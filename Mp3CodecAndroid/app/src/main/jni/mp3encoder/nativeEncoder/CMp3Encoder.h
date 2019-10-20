@@ -27,7 +27,6 @@ public:
     int initEncoder(int inChannelNum,int inSamplerate,int outSamplerate,int outBitrate,int mode,int quality);
 	int encoder(short* pcm_l,short* pcm_r,int nsamples,unsigned char *mp3buf, int mp3buf_size);
 	int flush(unsigned char *mp3buf, int mp3buf_size);
-	void destroyEncoder();
 private:
 	CMp3Encoder(CMp3Encoder& oth);
 	CMp3Encoder& operator=(const CMp3Encoder& oth);
