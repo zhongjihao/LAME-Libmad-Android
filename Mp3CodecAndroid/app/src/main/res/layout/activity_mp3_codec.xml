@@ -14,14 +14,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StartRecordMP3" />
+            android:text="开始录制MP3" />
 
         <Button
             android:id="@+id/StopRecordMP3"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StopRecordMP3" />
+            android:text="停止录制MP3" />
     </LinearLayout>
 
     <LinearLayout
@@ -34,14 +34,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StartRecordWAV" />
+            android:text="开始录制WAV" />
 
         <Button
             android:id="@+id/StopRecordWAV"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StopRecordWAV" />
+            android:text="停止录制WAV" />
     </LinearLayout>
 
     <LinearLayout

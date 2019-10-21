@@ -15,25 +15,26 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Created by zhongjihao100@163.com on 18-8-12.
  */
-public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
-    private static final String TAG = "WavCodec";
+public class WavCoder extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
+    private static final String TAG = "WavCoder";
     //用于存取待转换的PCM数据
     private LinkedBlockingQueue<PcmBuffer> audioQueue;
     private StopHandler handler;
     private CountDownLatch handlerInitLatch = new CountDownLatch(1);
     private static final int PROCESS_STOP = 1;
     private String wavPath;
+    private boolean isEncodering = false;
 
     public static class StopHandler extends Handler {
-        WeakReference<WavCodec> sr;
+        WeakReference<WavCoder> sr;
 
-        public StopHandler(WavCodec stateReceiver){
+        public StopHandler(WavCoder stateReceiver){
             sr = new WeakReference<>(stateReceiver);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            WavCodec codec = sr.get();
+            WavCoder codec = sr.get();
             if (codec == null) {
                 return;
             }
@@ -44,28 +45,35 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
                 removeCallbacksAndMessages(null);
                 codec.flush();
                 codec.audioQueue.clear();
-                Log.d(TAG, "=====zhongjihao======Wav编码线程 退出...");
+                Log.d(TAG, "=====zhongjihao======Wav编码线程开始退出...");
                 getLooper().quit();
             }
         }
     }
 
-    public WavCodec(String wavPath){
+    public void setOutputPath(String wavPath){
         this.wavPath = wavPath;
+    }
+
+    public WavCoder(){
         audioQueue = new LinkedBlockingQueue<>();
-        WavCoderWrap.newInstance().createWavEncoder(wavPath);
     }
 
     public void initWavEncoder(int numChannels, int sampleRate,int bytesPerSample) {
+        Log.d(TAG, "initWAVEncoder");
+        WavCoderWrap.newInstance().createWavEncoder(wavPath);
         WavCoderWrap.newInstance().initWavEncoder(numChannels,sampleRate,bytesPerSample);
     }
 
     @Override
     public void run() {
+        isEncodering = true;
         Looper.prepare();
         handler = new StopHandler(this);
         handlerInitLatch.countDown();
         Looper.loop();
+        isEncodering = false;
+        Log.d(TAG, "=====zhongjihao======WAV编码线程已经退出...");
     }
 
     public Handler getHandler() {
@@ -78,8 +86,12 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
         return handler;
     }
 
-    public void sendStopMessage() {
+    public void stopWavCoder() {
         handler.sendEmptyMessage(PROCESS_STOP);
+    }
+
+    public boolean isEncodering() {
+        return isEncodering;
     }
 
     /**
@@ -89,6 +101,7 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
      */
     public void addPcmData(short[] rawData, int readSize) {
         try {
+            Log.d(TAG, "======addPcmData===readSize: "+readSize);
             if (audioQueue != null)
                 audioQueue.put(new PcmBuffer(rawData,readSize));
         } catch (InterruptedException e) {
@@ -103,6 +116,7 @@ public class WavCodec extends Thread implements AudioGather.PcmCallback,AudioRec
 
     @Override
     public void onPeriodicNotification(AudioRecord recorder) {
+        Log.d(TAG, "======onPeriodicNotification===");
         //由AudioRecord进行回调，满足帧数，通知数据编码
         encoderData();
     }

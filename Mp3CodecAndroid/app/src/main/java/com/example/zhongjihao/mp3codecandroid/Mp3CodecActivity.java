@@ -34,8 +34,7 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
     private Mp3DecoderJni mp3Decoder;
     private Homehandle handler = null;
 
-    private AudioGather mp3Record;
-    private AudioGather wavRecord;
+    private AudioGather audioRecord;
 
     private Thread mThread;
     private short[] audioBuffer;
@@ -70,6 +69,8 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         stopRecordWavBtn = (Button) findViewById(R.id.StopRecordWAV);
 
         hasPermission = false;
+        audioRecord = AudioGather.getInstance();
+
 
         handler = new Homehandle(this);
 
@@ -98,35 +99,71 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         }
     }
 
+    private void startMP3Record(){
+        if(audioRecord != null && audioRecord.isRecording()){
+            audioRecord.stopRecord();
+        }
+        audioRecord.prepareAudioRecord();
+        final MP3Encoder mp3Encoder = new MP3Encoder();
+        audioRecord.setMp3Encoder(mp3Encoder);
+        mp3Encoder.setOutputPath(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
+        mp3Encoder.initMP3Encoder(audioRecord.getaChannelCount(),audioRecord.getaSampleRate(),audioRecord.getaSampleRate(),MP3Encoder.BITRATE,MP3Encoder.MODE,MP3Encoder.QUALITY,audioRecord.getMin_buffer_size());
+        //启动MP3编码线程
+        mp3Encoder.start();
+        //设置AudioRecord录制监听
+        audioRecord.setRecordListener(mp3Encoder, mp3Encoder.getHandler(),AudioGather.FRAME_COUNT);
+        audioRecord.setCallback(new AudioGather.PcmCallback() {
+            @Override
+            public void addPcmData(short[] pcmData, int elementNum) {
+                mp3Encoder.addPcmData(pcmData,elementNum);
+            }
+        });
+        audioRecord.startRecord();
+    }
+
+    private void startWAVRecord(){
+        if(audioRecord != null && audioRecord.isRecording()){
+            audioRecord.stopRecord();
+        }
+        audioRecord.prepareAudioRecord();
+        final WavCoder wavCoder = new WavCoder();
+        audioRecord.setWavCoder(wavCoder);
+        wavCoder.setOutputPath(Environment.getExternalStorageDirectory()+"/"+"audio_dir/"+FileUtil.getWavFileName(System.currentTimeMillis()));
+        wavCoder.initWavEncoder(audioRecord.getaChannelCount(),audioRecord.getaSampleRate(),AudioGather.AUDIO_FORMAT.getBytesPerFrame());
+        //启动WAV编码线程
+        wavCoder.start();
+        //设置AudioRecord录制监听
+        audioRecord.setRecordListener(wavCoder,wavCoder.getHandler(),AudioGather.FRAME_COUNT);
+        audioRecord.setCallback(new AudioGather.PcmCallback() {
+            @Override
+            public void addPcmData(short[] pcmData, int elementNum) {
+                wavCoder.addPcmData(pcmData,elementNum);
+            }
+        });
+        audioRecord.startRecord();
+    }
+
     @Override
     public void onClick(View v) {
         int vid = v.getId();
         switch (vid){
             case R.id.StartRecordMP3:{
-                if(mp3Record == null){
-                    mp3Record = new AudioGather(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
-                }
-                mp3Record.startRecord(AudioGather.RECORD_MP3);
+                startMP3Record();
                 break;
             }
             case R.id.StopRecordMP3:{
-                if(mp3Record != null){
-                    mp3Record.stopRecord();
-                    mp3Record = null;
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
                 }
                 break;
             }
             case R.id.StartRecordWAV:{
-                if(wavRecord == null){
-                    wavRecord = new AudioGather(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getWavFileName(System.currentTimeMillis()));
-                }
-                wavRecord.startRecord(AudioGather.RECORD_WAV);
+                startWAVRecord();
                 break;
             }
             case R.id.StopRecordWAV:{
-                if(wavRecord != null){
-                    wavRecord.stopRecord();
-                    wavRecord = null;
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
                 }
                 break;
             }
@@ -136,13 +173,8 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(mp3Record != null){
-            mp3Record.stopRecord();
-            mp3Record = null;
-        }
-        if(wavRecord != null){
-            wavRecord.stopRecord();
-            wavRecord = null;
+        if(audioRecord != null && audioRecord.isRecording()){
+            audioRecord.stopRecord();
         }
         if(mAudioTrack != null){
             mAudioTrack.stop();

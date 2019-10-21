@@ -19,8 +19,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Created by zhongjihao100@163.com on 18-8-12.
  **/
 
-public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
-    private static final String TAG = "MP3Codec";
+public class MP3Encoder extends Thread implements AudioGather.PcmCallback,AudioRecord.OnRecordPositionUpdateListener {
+    private static final String TAG = "MP3Encoder";
     //用于存取待转换的PCM数据
     private LinkedBlockingQueue<PcmBuffer> audioQueue;
     private FileOutputStream mp3File;
@@ -28,17 +28,31 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
     private StopHandler handler;
     private CountDownLatch handlerInitLatch = new CountDownLatch(1);
     private static final int PROCESS_STOP = 1;
+    private String outputDir;
+    private String recordFileName;
+    private boolean isEncodering = false;
+    //输出MP3的码率
+    public static final int BITRATE = 32;
+    //mode = 0,1,2,3 = stereo, jstereo, dual channel (not supported), mono
+    public static final int MODE = 3;
+    /*
+       recommended:
+           2     near-best quality, not too slow
+           5     good quality, fast
+           7     ok quality, really fast
+    */
+    public static final int QUALITY = 7;
 
     public static class StopHandler extends Handler {
-        WeakReference<MP3Codec> sr;
+        WeakReference<MP3Encoder> sr;
 
-        public StopHandler(MP3Codec stateReceiver) {
-            sr = new WeakReference<MP3Codec>(stateReceiver);
+        public StopHandler(MP3Encoder stateReceiver) {
+            sr = new WeakReference<MP3Encoder>(stateReceiver);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            MP3Codec codec = sr.get();
+            MP3Encoder codec = sr.get();
             if (codec == null) {
                 return;
             }
@@ -49,35 +63,50 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
                 removeCallbacksAndMessages(null);
                 codec.flush();
                 codec.audioQueue.clear();
-                Log.d(TAG, "=====zhongjihao======MP3编码线程 退出...");
+                Log.d(TAG, "=====zhongjihao======MP3编码线程开始退出...");
                 getLooper().quit();
             }
         }
     }
 
-    public MP3Codec(File os, int bufferSize) {
+    public MP3Encoder() {
+
+    }
+
+    public void setOutputPath(String dir, String fileName){
+        this.outputDir = dir;
+        this.recordFileName = fileName;
+    }
+
+    public void initMP3Encoder(int numChannels, int inSampleRate,int outSampleRate, int bitRate, int mode, int quality,int min_buffer_size) {
+        File file = FileUtil.setOutPutFile(outputDir, recordFileName);
+        if (file == null) {
+            Log.e(TAG, "initMP3Encoder----outputDir: " + outputDir + "  fileName: " + recordFileName + "  create error");
+            return;
+        }
+        Log.d(TAG, "initMP3Encoder");
         try {
-            mp3File = new FileOutputStream(os);
+            mp3File = new FileOutputStream(file);
         }catch (Exception e){
             e.printStackTrace();
         }
         //官方规定了计算公式：7200 + (1.25 * buffer_l.length)
-        mp3Buffer =  new byte[(int) (7200 + (bufferSize * 2 * 1.25))];
-        Log.d(TAG,"mp3Buffer size: "+mp3Buffer.length+"   bufferSize: "+bufferSize);
+        mp3Buffer =  new byte[(int) (7200 + (min_buffer_size/2 * 2 * 1.25))];
+        Log.d(TAG,"mp3Buffer size: "+mp3Buffer.length+"   bufferSize: "+min_buffer_size/2);
         audioQueue = new LinkedBlockingQueue<>();
         Mp3EncoderWrap.newInstance().createEncoder();
-    }
-
-    public void initAudioEncoder(int numChannels, int inSampleRate,int outSampleRate, int bitRate, int mode, int quality) {
         Mp3EncoderWrap.newInstance().initMp3Encoder(numChannels,inSampleRate,outSampleRate,bitRate,mode,quality);
     }
 
     @Override
     public void run() {
+        isEncodering = true;
         Looper.prepare();
         handler = new StopHandler(this);
         handlerInitLatch.countDown();
         Looper.loop();
+        isEncodering = false;
+        Log.d(TAG, "=====zhongjihao======MP3编码线程已经退出...");
     }
 
     public Handler getHandler() {
@@ -90,8 +119,12 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
         return handler;
     }
 
-    public void sendStopMessage() {
+    public void stopMP3Encoder() {
         handler.sendEmptyMessage(PROCESS_STOP);
+    }
+
+    public boolean isEncodering() {
+        return isEncodering;
     }
 
     /**
@@ -101,6 +134,7 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
      */
     public void addPcmData(short[] rawData, int readSize) {
         try {
+            Log.d(TAG, "======addPcmData===readSize: "+readSize);
             if (audioQueue != null)
                 audioQueue.put(new PcmBuffer(rawData,readSize));
         } catch (InterruptedException e) {
@@ -115,6 +149,7 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
 
     @Override
     public void onPeriodicNotification(AudioRecord recorder) {
+        Log.d(TAG, "======onPeriodicNotification===");
         //由AudioRecord进行回调，满足帧数，通知数据编码
         encoderData();
     }
@@ -126,7 +161,6 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
                 PcmBuffer data = audioQueue.take();
                 short[] buffer = data.getData();
                 int readSize = data.getReadSize();
-                Log.d(TAG, "======zhongjihao====要编码的Audio数据大小:" + readSize);
                 if (readSize > 0) {
                     int encodedSize =  Mp3EncoderWrap.newInstance().encodePcmToMp3(buffer, buffer, readSize, mp3Buffer);
                     Log.d(TAG, "===zhongjihao====Lame encoded size: " + encodedSize);
@@ -150,7 +184,6 @@ public class MP3Codec extends Thread implements AudioGather.PcmCallback,AudioRec
     //Flush all data left in lame buffer to file
     private void flush() {
         try {
-            Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"   mp3Buffer size: "+mp3Buffer.length);
             final int flushResult = Mp3EncoderWrap.newInstance().encodeFlush(mp3Buffer);
             Log.d(TAG, "===zhongjihao====flush mp3Buffer: "+mp3Buffer+"  flush size: "+flushResult);
             if (flushResult > 0) {

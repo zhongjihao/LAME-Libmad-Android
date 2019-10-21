@@ -42,7 +42,7 @@ android {
 
     flavorDimensions "default"
     productFlavors {
-        Android_Pcm_Mp3 {
+        Android_Audio_Record {
             versionName "$archivesBaseName"+"_$name"
         }
     }
