@@ -3,20 +3,20 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:= \
-	./mp3decoder/mad/version.c \
-	./mp3decoder/mad/fixed.c \
-	./mp3decoder/mad/bit.c \
-	./mp3decoder/mad/timer.c \
-	./mp3decoder/mad/stream.c \
-	./mp3decoder/mad/frame.c  \
-	./mp3decoder/mad/synth.c \
-	./mp3decoder/mad/decoder.c \
-	./mp3decoder/mad/layer12.c \
-	./mp3decoder/mad/layer3.c \
-	./mp3decoder/mad/huffman.c \
+	./mad/version.c \
+	./mad/fixed.c \
+	./mad/bit.c \
+	./mad/timer.c \
+	./mad/stream.c \
+	./mad/frame.c  \
+	./mad/synth.c \
+	./mad/decoder.c \
+	./mad/layer12.c \
+	./mad/layer3.c \
+	./mad/huffman.c \
 	./jni_mad_mp3_wrap.cpp \
-	./mp3decoder/NativeFileOperator.c \
-	./mp3decoder/NativeMP3Decoder.c 
+	./NativeFileOperator.c \
+	./NativeMP3Decoder.c
 
 LOCAL_ARM_MODE := arm
 
@@ -28,6 +28,8 @@ LOCAL_C_INCLUDES := \
 #LOCAL_CFLAGS := -DHAVE_CONFIG_H -DFPM_ARM -ffast-math -O3
 
 LOCAL_CFLAGS := -DHAVE_CONFIG_H -DFPM_DEFAULT
+
+LOCAL_STATIC_LIBRARIES := baseclass
 
 LOCAL_LDLIBS := -llog
 

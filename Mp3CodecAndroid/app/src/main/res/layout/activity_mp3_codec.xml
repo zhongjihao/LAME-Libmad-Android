@@ -27,7 +27,8 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal" >
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
 
         <Button
             android:id="@+id/StartRecordWAV"
@@ -47,27 +48,37 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal" >
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
 
         <Button
-            android:id="@+id/StartRecordAMR"
+            android:id="@+id/playMp3"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StartRecordAMR" />
+            android:text="播放MP3" />
 
         <Button
-            android:id="@+id/StopRecordAMR"
+            android:id="@+id/pauseMp3"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="StopRecordAMR" />
+            android:text="暂停MP3" />
+
+        <Button
+            android:id="@+id/rePlayMp3"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="重播MP3" />
+
+        <Button
+            android:id="@+id/stopMp3"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="停止MP3" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/StatusTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="fill_parent" />
 
 
 </LinearLayout>

@@ -23,36 +23,37 @@ extern "C" {
 }
 #endif
 
-jint JNI_libmad_NativeMP3Decoder_initAudioPlayer(JNIEnv *env, jobject obj, jstring file,jint startAddr)
+jint JNI_libmad_NativeMP3Decoder_initAudioPlayer(JNIEnv *env, jobject obj, jstring jfilePath,jint startPos)
 {
-	const char* fileString = env->GetStringUTFChars(file, NULL);  
-    int ret = NativeMP3Decoder_init(fileString,startAddr); 
+	const char* filePath = env->GetStringUTFChars(jfilePath, NULL);
+    int ret = NativeMP3Decoder_init(filePath,startPos);
 	if(ret == -1)
 	{
-		LOGE("=======JNI===initAudioPlayer===error===");
-		env ->ReleaseStringUTFChars(file,fileString);
+		LOGE("%s: mp3 mad init failed",__FUNCTION__);
+		env ->ReleaseStringUTFChars(jfilePath,filePath);
 		ThrowErrnoException(env, "java/io/IOException", errno);
 		return (jint)ret;
 	}
-	env ->ReleaseStringUTFChars(file,fileString);
+	LOGD("%s: mp3 mad init ok----->ret: %d,filePath: %s,startPos: %d",__FUNCTION__,ret,filePath,startPos);
+	env ->ReleaseStringUTFChars(jfilePath,filePath);
 	return (jint)ret;
 }
 
-jint JNI_libmad_NativeMP3Decoder_getAudioBuf(JNIEnv *env, jobject obj ,jshortArray audioBuf,jint len)
+jint JNI_libmad_NativeMP3Decoder_getAudioBuf(JNIEnv *env, jobject obj ,jshortArray jaudioBuf,jint jlen)
 {
 	int bufsize = 0;
 	int ret = 0;
-    if(audioBuf != NULL)
+    if(jaudioBuf != NULL)
 	{
-		bufsize = env->GetArrayLength(audioBuf);  
-        jshort *_buf = env->GetShortArrayElements(audioBuf,NULL);  
-		memset(_buf,0,bufsize*2);  
-		ret = NativeMP3Decoder_readSamples(_buf, len);  
-		env->ReleaseShortArrayElements(audioBuf,_buf,0);  
+		bufsize = env->GetArrayLength(jaudioBuf);
+        jshort *buffer = env->GetShortArrayElements(jaudioBuf,NULL);
+		memset(buffer,0,bufsize*2);
+		ret = NativeMP3Decoder_readSamples(buffer, jlen);
+		env->ReleaseShortArrayElements(jaudioBuf,buffer,0);
 	}
 	else
 	{
-		LOGE("====JNI===传入的数组为空====");
+		LOGE("%s: 传入的数组为空",__FUNCTION__);
 	}
 	return ret;
 }
@@ -89,7 +90,7 @@ static JNINativeMethod gMethods[] = {
  };
 
 //定义java中类全名
-static const char* classPathName = "com/mp3/android/nativeJNI/NativeMP3Decoder";
+static const char* classPathName = "com/example/zhongjihao/mp3codecandroid/mp3codec/Mp3DecoderJni";
 
 typedef union{
 	JNIEnv* env;

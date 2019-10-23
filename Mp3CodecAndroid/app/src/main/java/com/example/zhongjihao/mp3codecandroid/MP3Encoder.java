@@ -202,4 +202,7 @@ public class MP3Encoder extends Thread implements AudioGather.PcmCallback,AudioR
         }
     }
 
+    public String getMp3Path(){
+        return outputDir+"/"+recordFileName;
+    }
 }

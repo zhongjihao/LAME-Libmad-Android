@@ -7,7 +7,7 @@
 
 #define LOG_TAG "MP3_Decoder"
 
-#include "../../baseclass/log.h"
+#include "../baseclass/log.h"
 #include "NativeMP3Decoder.h"
 
 static inline int readNextFrame(MP3FileHandle* mp3);
@@ -50,17 +50,17 @@ static inline signed short fixedToShort(mad_fixed_t Fixed)
 
 int  NativeMP3Decoder_init(const char * filepath,unsigned long start)
 {
-	LOGD("=======NativeMP3Decoder_init=====start: %lu",start);
+	LOGD("%s: filePath: %s, start: %lu",__FUNCTION__,filepath,start);
     int fd = file_open(filepath,_FMODE_READ);
 	if(fd == -1)
 	{
 		perror("===NativeMP3Decoder_init===open()=====");
-		LOGE("====NativeMP3Decoder_init===打开文件失败=========");
+		LOGE("%s: 打开文件失败",__FUNCTION__);
 		return -1;
 	}
 	if(fd == -2)
 	{
-		LOGE("====NativeMP3Decoder_init===file_open参数指定错误=====");
+		LOGE("%s: file_open参数指定错误",__FUNCTION__);
 		return 0;
 	}
 	MP3FileHandle* mp3Handle = (MP3FileHandle*)malloc(sizeof(MP3FileHandle));
@@ -71,8 +71,10 @@ int  NativeMP3Decoder_init(const char * filepath,unsigned long start)
 	int ret = fstat(fd, &st);
 	if(ret < 0)
 	{
-		LOGE("=======NativeMP3Decoder_init====获取文件大小失败=====");
-		perror("====NativeMP3Decoder_init===fstat()====");
+		LOGE("%s: 获取文件大小失败",__FUNCTION__);
+		perror("NativeMP3Decoder_init===fstat()");
+		free(mp3Handle);
+		file_close(fd);
 		return -1;
 	}
 	mp3Handle->size = st.st_size; 
@@ -86,7 +88,7 @@ int  NativeMP3Decoder_init(const char * filepath,unsigned long start)
     Handle = mp3Handle;
 	readNextFrame(Handle); 
     g_Samplerate = Handle->frame.header.samplerate; 
-	LOGD("=======NativeMP3Decoder_init===采样率: %d====文件大小: %lld",g_Samplerate,st.st_size);
+	LOGD("%s: 采样率: %d, 文件大小: %ld",__FUNCTION__,g_Samplerate,st.st_size);
 	return 1;
 }
 
@@ -169,7 +171,7 @@ int NativeMP3Decoder_readSamples(short *target, int size)
              int result = readNextFrame(mp3);
 			 if(result == 0)
 			 {
-				 LOGD("=====NativeMP3Decoder_readSamples====result: %d=========",result);
+				 LOGD("%s: readNextFrame----->result: %d",__FUNCTION__,result);
 				 return 0;
 			 }
 		 }
@@ -177,7 +179,7 @@ int NativeMP3Decoder_readSamples(short *target, int size)
     
     if(idx > size)
 	{
-		LOGD("=====NativeMP3Decoder_readSamples=====idx: %d, size: %d",idx,size);
+		LOGD("%s: idx: %d, size: %d",__FUNCTION__,idx,size);
 		return 0;
 	}
 	return mp3 ->fileStartPos; 
@@ -194,6 +196,7 @@ int getAudioFileSize()
 	{
 		return Handle->size;
 	}
+	return 0;
 }
 
 void rePlayAudioFile()

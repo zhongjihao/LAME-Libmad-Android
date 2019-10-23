@@ -2,9 +2,6 @@ package com.example.zhongjihao.mp3codecandroid;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
 import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -12,45 +9,31 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.TextUtils;
 import android.view.KeyEvent;
-import android.os.Message;
-import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.example.zhongjihao.mp3codecandroid.mp3codec.Mp3DecoderJni;
 
-
-import java.lang.ref.WeakReference;
-
+/**
+ * Created by zhongjihao100@163.com on 18-8-12.
+ */
 public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickListener {
 
     private boolean hasPermission;
-    private final static int PLAY_DONE = 100;
-    private static final int ENCODER_DONE = 10;
-
-    private Mp3DecoderJni mp3Decoder;
-    private Homehandle handler = null;
-
     private AudioGather audioRecord;
-
-    private Thread mThread;
-    private short[] audioBuffer;
-    private AudioTrack mAudioTrack;
-    private int ret;
-    private boolean mThreadFlag;
-    private int playCurrentPos = 0;
-    private boolean playDone = false;
-    private boolean isStopPlay = false;
-    private int samplerate;
-    private int mAudioMinBufSize;
+    private Mp3Play mp3Play;
 
     private Button startRecordMP3Btn;
     private Button stopRecordMP3Btn;
     private Button startRecordWavBtn;
     private Button stopRecordWavBtn;
+    private Button playMp3Btn;
+    private Button pauseMp3Btn;
+    private Button stopMp3Btn;
+    private Button rePlayMp3Btn;
+    private String mp3Path;
 
     private static final int TARGET_PERMISSION_REQUEST = 100;
 
@@ -67,17 +50,23 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         stopRecordMP3Btn = (Button) findViewById(R.id.StopRecordMP3);
         startRecordWavBtn = (Button) findViewById(R.id.StartRecordWAV);
         stopRecordWavBtn = (Button) findViewById(R.id.StopRecordWAV);
+        playMp3Btn = (Button)findViewById(R.id.playMp3);
+        pauseMp3Btn = (Button)findViewById(R.id.pauseMp3);
+        stopMp3Btn = (Button)findViewById(R.id.stopMp3);
+        rePlayMp3Btn = (Button)findViewById(R.id.rePlayMp3);
 
         hasPermission = false;
         audioRecord = AudioGather.getInstance();
-
-
-        handler = new Homehandle(this);
+        mp3Play = new Mp3Play(this);
 
         startRecordMP3Btn.setOnClickListener(this);
         stopRecordMP3Btn.setOnClickListener(this);
         startRecordWavBtn.setOnClickListener(this);
         stopRecordWavBtn.setOnClickListener(this);
+        playMp3Btn.setOnClickListener(this);
+        pauseMp3Btn.setOnClickListener(this);
+        stopMp3Btn.setOnClickListener(this);
+        rePlayMp3Btn.setOnClickListener(this);
 
         // 版本判断。当手机系统大于 23 时，才有必要去判断权限是否获取
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -107,6 +96,7 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         final MP3Encoder mp3Encoder = new MP3Encoder();
         audioRecord.setMp3Encoder(mp3Encoder);
         mp3Encoder.setOutputPath(Environment.getExternalStorageDirectory()+"/"+"audio_dir",FileUtil.getMP3FileName(System.currentTimeMillis()));
+        mp3Path = mp3Encoder.getMp3Path();
         mp3Encoder.initMP3Encoder(audioRecord.getaChannelCount(),audioRecord.getaSampleRate(),audioRecord.getaSampleRate(),MP3Encoder.BITRATE,MP3Encoder.MODE,MP3Encoder.QUALITY,audioRecord.getMin_buffer_size());
         //启动MP3编码线程
         mp3Encoder.start();
@@ -167,6 +157,42 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
                 }
                 break;
             }
+            case R.id.playMp3:{
+                if(TextUtils.isEmpty(mp3Path)){
+                    Toast.makeText(this, "请先录制MP3,然后再播放!",
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
+                }
+                mp3Play.setPlaySource(mp3Path);
+                mp3Play.prepare();
+                mp3Play.startPlayMP3();
+                break;
+            }
+            case R.id.pauseMp3:{
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
+                }
+                mp3Play.pausePlayMP3();
+                break;
+            }
+            case R.id.rePlayMp3:{
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
+                }
+                mp3Play.rePlayMP3();
+                break;
+            }
+            case R.id.stopMp3:{
+                if(audioRecord != null && audioRecord.isRecording()){
+                    audioRecord.stopRecord();
+                }
+                mp3Play.stopPlayMP3();
+                mp3Play.release();
+                break;
+            }
         }
     }
 
@@ -176,114 +202,11 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
         if(audioRecord != null && audioRecord.isRecording()){
             audioRecord.stopRecord();
         }
-        if(mAudioTrack != null){
-            mAudioTrack.stop();
-            mAudioTrack.release();// 关闭并释放资源
+        if(mp3Play != null){
+            mp3Play.release();
         }
-        mThreadFlag = false;// 音频线程停止
-        if(mp3Decoder != null){
-            mp3Decoder.closeAudioFile();
-        }
-
         System.exit(0);
     }
-
-
-
-    private void initAudioPlayer() {
-        samplerate = mp3Decoder.getAudioSamplerate();
-        Log.d("zhongjihao", "==========samplerate = " + samplerate);
-        samplerate = samplerate / 2;
-        // 声音文件一秒钟buffer的大小
-        mAudioMinBufSize = AudioTrack.getMinBufferSize(samplerate,
-                AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT);
-
-        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, // 指定在流的类型
-                // STREAM_ALARM：警告声
-                // STREAM_MUSCI：音乐声，例如music等
-                // STREAM_RING：铃声
-                // STREAM_SYSTEM：系统声音
-                // STREAM_VOCIE_CALL：电话声音
-
-                samplerate,// 设置音频数据的采样率
-                AudioFormat.CHANNEL_CONFIGURATION_STEREO,// 设置输出声道为双声道立体声
-                AudioFormat.ENCODING_PCM_16BIT,// 设置音频数据块是8位还是16位
-                mAudioMinBufSize, AudioTrack.MODE_STREAM);// 设置模式类型，在这里设置为流类型
-        // AudioTrack中有MODE_STATIC和MODE_STREAM两种分类。
-        // STREAM方式表示由用户通过write方式把数据一次一次得写到audiotrack中。
-        // 这种方式的缺点就是JAVA层和Native层不断地交换数据，效率损失较大。
-        // 而STATIC方式表示是一开始创建的时候，就把音频数据放到一个固定的buffer，然后直接传给audiotrack，
-        // 后续就不用一次次得write了。AudioTrack会自己播放这个buffer中的数据。
-        // 这种方法对于铃声等体积较小的文件比较合适。
-    }
-
-    private static class Homehandle extends Handler {
-        private WeakReference<Mp3CodecActivity> wref;
-
-        public Homehandle(Mp3CodecActivity act) {
-            wref = new WeakReference<Mp3CodecActivity>(act);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            final Mp3CodecActivity act = wref.get();
-            if (act == null) {
-                return;
-            }
-            switch (msg.what) {
-                case ENCODER_DONE:
-                    Toast.makeText(act, "录音文件已编码完毕!", Toast.LENGTH_SHORT).show();
-                    if(act.mp3Decoder == null){
-                        act.mp3Decoder = new Mp3DecoderJni();
-                        act.ret = act.mp3Decoder.initAudioPlayer("aaa", 0);
-                        if (act.ret == -1) {
-                            Log.e("zhongjihao", "====Couldn't open file '");
-                        } else {
-                            act.mThreadFlag = true;
-                            act.initAudioPlayer();
-                            act.audioBuffer = new short[1024 * 1024];
-                            act.mThread = new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    while (act.mThreadFlag) {
-                                        if (act.mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_PAUSED
-                                                && act.mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-                                            // ****从libmad处获取data******/
-                                            act.playCurrentPos = act.mp3Decoder.getAudioBuf(
-                                                    act.audioBuffer, act.mAudioMinBufSize);
-                                            act.mAudioTrack.write(act.audioBuffer, 0, act.mAudioMinBufSize);
-                                            Log.d("", "====播放缓冲大小:  " + act.mAudioMinBufSize
-                                                    + "====播放的文件位置: ========" + act.playCurrentPos+"=========文件大小: "+act.mp3Decoder.getAudioFileSize());
-                                            if (act.playCurrentPos == 0) {
-                                                act.mAudioTrack.stop();
-                                                act.handler.sendEmptyMessage(PLAY_DONE);
-                                                act.playDone = true;
-                                            }
-                                        } else {
-                                            try {
-                                                Thread.sleep(1000);
-                                            } catch (InterruptedException e) {
-                                                e.printStackTrace();
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                            act.mThread.start();
-                        }
-                    }else{
-                        act.ret = act.mp3Decoder.initAudioPlayer("aaa", 0);
-                        act.initAudioPlayer();
-                    }
-                    break;
-                case PLAY_DONE:
-                    Toast.makeText(act, "play done", Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        }
-    }
-
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
