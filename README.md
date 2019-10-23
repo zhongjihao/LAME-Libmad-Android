@@ -18,6 +18,9 @@
 
 3 AS编译运行 \
    录制的MP3文件或WAV文件在SD卡audio_dir目录中
+   
+4 软件运行截图 \
+  ![fadf](Screenshot_20191023-191648.png)
 
 
 
