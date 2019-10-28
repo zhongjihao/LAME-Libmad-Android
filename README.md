@@ -1,3 +1,7 @@
+如果您觉得该项目对您有用，请扫描以下二维码打赏1元，多多支持 \
+![afd](webwxgetmsgimg.jpeg)
+
+
 本工程包含三部分 \
 1 MP3格式录制模块 \
    AudioRecord采集PCM音频数据，使用libmp3lame库编码成MP3
