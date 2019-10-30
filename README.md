@@ -17,8 +17,9 @@
 1 下载安装android-ndk-r17
 
 2 cd jni/ \
-  ndk-build clean \ 
-  ndk-build 生成so
+  执行ndk-build clean
+  
+  再执行ndk-build 生成so
 
 3 AS编译运行 \
    录制的MP3文件或WAV文件在SD卡audio_dir目录中
