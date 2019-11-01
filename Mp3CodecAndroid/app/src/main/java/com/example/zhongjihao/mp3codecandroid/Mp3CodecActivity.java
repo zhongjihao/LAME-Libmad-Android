@@ -10,17 +10,20 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.example.zhongjihao.mp3codecandroid.mp3codec.IMP3EncoderDoneNotify;
+
 
 /**
  * Created by zhongjihao100@163.com on 18-8-12.
  */
-public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickListener {
-
+public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickListener,IMP3EncoderDoneNotify {
+    private static final String TAG = "Mp3CodecActivity";
     private boolean hasPermission;
     private AudioGather audioRecord;
     private Mp3Play mp3Play;
@@ -131,6 +134,12 @@ public class Mp3CodecActivity extends AppCompatActivity implements View.OnClickL
             }
         });
         audioRecord.startRecord();
+    }
+
+    @Override
+    public void encoderMp3Done(){
+        Log.d(TAG,"PCM file encode MP3 file Done!");
+
     }
 
     @Override

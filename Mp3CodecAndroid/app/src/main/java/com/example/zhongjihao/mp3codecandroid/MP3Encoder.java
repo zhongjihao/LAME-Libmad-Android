@@ -162,7 +162,7 @@ public class MP3Encoder extends Thread implements AudioGather.PcmCallback,AudioR
                 short[] buffer = data.getData();
                 int readSize = data.getReadSize();
                 if (readSize > 0) {
-                    int encodedSize =  Mp3EncoderWrap.newInstance().encodePcmToMp3(buffer, buffer, readSize, mp3Buffer);
+                    int encodedSize =  Mp3EncoderWrap.newInstance().encodePcmDataToMp3(buffer, buffer, readSize, mp3Buffer);
                     Log.d(TAG, "===zhongjihao====Lame encoded size: " + encodedSize);
                     if (encodedSize > 0) {
                         try {

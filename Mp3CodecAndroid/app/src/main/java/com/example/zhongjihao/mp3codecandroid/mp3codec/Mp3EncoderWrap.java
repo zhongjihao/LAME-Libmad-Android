@@ -22,6 +22,14 @@ public class Mp3EncoderWrap {
         return mInstance;
     }
 
+    public void registerCallback(IMP3EncoderDoneNotify cb){
+        Mp3EncoderJni.registerCallback(cb);
+    }
+
+    public void destroyCallback(){
+        Mp3EncoderJni.destroyCallback();
+    }
+
     public void createEncoder() {
         if(cPtr == 0){
             cPtr = Mp3EncoderJni.createMp3Encoder();
@@ -36,12 +44,20 @@ public class Mp3EncoderWrap {
         }
     }
 
-    public int encodePcmToMp3(short[] buffer_l, short[] buffer_r, int samples, byte[] mp3buf) {
+    public int encodePcmDataToMp3(short[] buffer_l, short[] buffer_r, int samples, byte[] mp3buf) {
         int encoderByte = 0;
         if(cPtr != 0){
-            encoderByte = Mp3EncoderJni.encodePcmToMp3(cPtr,buffer_l, buffer_r,samples,mp3buf);
+            encoderByte = Mp3EncoderJni.encodePcmDataToMp3(cPtr,buffer_l, buffer_r,samples,mp3buf);
         }
         return encoderByte;
+    }
+
+    public int pcmfileConvertMP3file(String pcmPath, String mp3Path) {
+        int ret = 0;
+        if(cPtr != 0){
+            ret = Mp3EncoderJni.pcmfileConvertMP3file(cPtr,pcmPath, mp3Path);
+        }
+        return ret;
     }
 
     public int encodeFlush(byte[] mp3buf) {

@@ -12,6 +12,12 @@ public class Mp3EncoderJni {
         System.loadLibrary("mp3encoder");
     }
 
+    //注册MP3编码完成回调
+    public native static void registerCallback(IMP3EncoderDoneNotify cb);
+
+    //销毁MP3编码完成回调
+    public native static void destroyCallback();
+
     public native static long createMp3Encoder();
     /**
      * Initialize LAME.
@@ -49,7 +55,7 @@ public class Mp3EncoderJni {
      mp3buf大小：官方规定了计算公式：7200 + (1.25 * buffer_l.length)
 
     */
-    public native static int encodePcmToMp3(long cPtr,short[] buffer_l, short[] buffer_r, int samples, byte[] mp3buf);
+    public native static int encodePcmDataToMp3(long cPtr,short[] buffer_l, short[] buffer_r, int samples, byte[] mp3buf);
 
     /**
      * * Flush LAME buffer.
@@ -73,6 +79,9 @@ public class Mp3EncoderJni {
      * 传入参数：mp3buf至少7200字节
      */
     public native static int encodeFlush(long cPtr,byte[] mp3buf);
+
+    //PCM文件编码为MP3文件
+    public native static int pcmfileConvertMP3file(long cPtr,String pcmPath, String mp3Path);
 
     /**
      * Close LAME.

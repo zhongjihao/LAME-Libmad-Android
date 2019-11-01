@@ -21,17 +21,25 @@ class CMp3Encoder
 {
 private:
 	lame_t lame;
+	char* pcmPath;       //录音的pcm文件名
+	char* mp3Path;       //编码后的文件名
+	FILE* pcmFd;
+	FILE* mp3Fd;
 public:
 	CMp3Encoder();
 	~CMp3Encoder();
     int initEncoder(int inChannelNum,int inSamplerate,int outSamplerate,int outBitrate,int mode,int quality);
 	int encoder(short* pcm_l,short* pcm_r,int nsamples,unsigned char *mp3buf, int mp3buf_size);
 	int flush(unsigned char *mp3buf, int mp3buf_size);
+	void setEncoderSource(const char* infile,const char* outfile);
+	int encoder();
 private:
 	CMp3Encoder(CMp3Encoder& oth);
 	CMp3Encoder& operator=(const CMp3Encoder& oth);
+	static int read_samples(FILE* input_file,short* input);
 };
 
+extern void JNI_Mp3EncoderDoneCallback();
 
 #endif
 

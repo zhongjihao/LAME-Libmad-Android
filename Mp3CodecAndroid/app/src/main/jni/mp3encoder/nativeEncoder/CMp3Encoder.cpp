@@ -9,7 +9,7 @@
 #include "CMp3Encoder.h"
 #include "../../baseclass/log.h"
 
-CMp3Encoder::CMp3Encoder():lame(NULL)
+CMp3Encoder::CMp3Encoder():lame(NULL),pcmPath(NULL),mp3Path(NULL),pcmFd(NULL),mp3Fd(NULL)
 {
 	LOGD("%s: ======zhongjihao=======",__FUNCTION__);
 }
@@ -69,5 +69,46 @@ int CMp3Encoder::flush(unsigned char* mp3buf, int mp3buf_size)
 	int nb_total = lame_encode_flush(lame, mp3buf, mp3buf_size);
 	LOGD("%s:X: ====zhongjihao====Flushed %d bytes", __FUNCTION__,nb_total);
     return nb_total;
+}
+
+void CMp3Encoder::setEncoderSource(const char* infile,const char* outfile)
+{
+	int rawFileLen = strlen(infile);
+	int encodedFileLen = strlen(outfile);
+	pcmPath = new char[rawFileLen+1];
+	mp3Path = new char[encodedFileLen+1];
+	bzero(pcmPath,rawFileLen+1);
+	bzero(mp3Path,encodedFileLen+1);
+	memcpy(pcmPath,infile,rawFileLen);
+	memcpy(mp3Path,outfile,encodedFileLen);
+}
+
+int CMp3Encoder::encoder()
+{
+	pcmFd = fopen(pcmPath,"rb");
+	if(pcmFd == NULL){
+		LOGE("%s:====zhongjihao====open %s failed!", __FUNCTION__,pcmPath);
+		return -1;
+	}
+
+	mp3Fd = fopen(mp3Path,"wb");
+	if(mp3Fd == NULL){
+		LOGE("%s:====zhongjihao====open %s failed!", __FUNCTION__,mp3Path);
+		return -1;
+	}
+}
+
+int CMp3Encoder::read_samples(FILE *input_file, short *input)
+{
+	int nb_read;
+	nb_read = fread(input, 1, sizeof(short), input_file) / sizeof(short);
+
+	int i = 0;
+	while (i < nb_read)
+	{
+		input[i] = be_short(input[i]);
+		i++;
+	}
+	return nb_read;
 }
 
